@@ -47,6 +47,14 @@ extern iic_halt iic_bus;
 extern gpio_halt user_led;
 extern gpio_halt gpio_beep;
 
+
+//my variable define
+adc_gt sin_source;
+adc_gt sin_fs;
+adc_channel_t adc_sin_source;
+adc_channel_t adc_sin_fs;
+ctrl_gt dac_result;
+
 //
 // Function to configure I2C A in FIFO mode.
 //
@@ -118,6 +126,9 @@ void setup_peripheral(void)
 
     gpio_beep = IRIS_GPIO1;
 
+    ctl_init_adc_channel(&adc_sin_source,1.0,0.5,12,24);
+
+    ctl_init_adc_channel(&adc_sin_fs,1.0,0.5,12,24);
 }
 
 

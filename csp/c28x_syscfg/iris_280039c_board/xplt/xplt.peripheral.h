@@ -23,6 +23,9 @@ extern "C"
 // select ADC PTR interface
 #include <ctl/component/interface/adc_ptr_channel.h>
 
+// select ADC interface
+#include <ctl/component/interface/adc_channel.h>
+
 //=================================================================================================
 // definitions of peripheral
 
@@ -47,6 +50,13 @@ extern ptr_adc_channel_t udc;
 extern adc_gt udc_src;
 extern ptr_adc_channel_t idc;
 extern adc_gt idc_src;
+
+//my variable
+extern adc_gt sin_source;
+extern adc_gt sin_fs;
+extern adc_channel_t adc_sin_source;
+extern adc_channel_t adc_sin_fs;
+extern ctrl_gt dac_result;
 
 void reset_controller(void);
 

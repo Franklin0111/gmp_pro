@@ -1,8 +1,8 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "F28003x" --part "F28003x_100PZ" --package "100PZ" --context "system" --product "C2000WARE@5.03.00.00" --product "gmp_pro@1.00.00.05"
- * @v2CliArgs --device "TMS320F280039C" --package "100PZ" --context "system" --product "C2000WARE@5.03.00.00" --product "gmp_pro@1.00.00.05"
+ * @cliArgs --device "F28003x" --part "F28003x_100PZ" --package "100PZ" --context "system" --product "C2000WARE@5.04.00.00" --product "gmp_pro@1.00.00.05"
+ * @v2CliArgs --device "TMS320F280039C" --package "100PZ" --context "system" --product "C2000WARE@5.04.00.00" --product "gmp_pro@1.00.00.05"
  * @versions {"tool":"1.21.0+3721"}
  */
 
@@ -74,8 +74,6 @@ adc1.soc1IndependentNameMode        = true;
 adc1.soc2Trigger                    = "ADC_TRIGGER_EPWM1_SOCA";
 adc1.soc1Trigger                    = "ADC_TRIGGER_EPWM1_SOCA";
 adc1.soc2IndependentNameMode        = true;
-adc1.soc0Name                       = "INV_IU";
-adc1.soc0Channel                    = "ADC_CH_ADCIN2";
 adc1.soc1Name                       = "INV_IA";
 adc1.soc1Channel                    = "ADC_CH_ADCIN8";
 adc1.soc2Name                       = "INV_UA";
@@ -91,6 +89,8 @@ adc1.soc4Channel                    = "ADC_CH_ADCIN11";
 adc1.soc4Trigger                    = "ADC_TRIGGER_EPWM1_SOCA";
 adc1.soc4SampleWindow               = 9;
 adc1.soc4IndependentNameMode        = true;
+adc1.soc0Name                       = "SIN_SOURCE";
+adc1.soc0Channel                    = "ADC_CH_ADCIN6";
 adc1.adcInt1.interruptHandler       = "MainISR";
 adc1.adcInt1.enableInterrupt        = true;
 
@@ -106,13 +106,11 @@ adc2.soc0IndependentNameMode = true;
 adc2.soc2SampleWindow        = 9;
 adc2.soc2IndependentNameMode = true;
 adc2.soc2Trigger             = "ADC_TRIGGER_EPWM1_SOCA";
-adc2.soc0Name                = "INV_IV";
 adc2.soc1Name                = "INV_IB";
 adc2.soc2Name                = "INV_UB";
 adc2.soc3Name                = "INV_UV";
 adc2.soc3IndependentNameMode = true;
 adc2.soc3SampleWindow        = 9;
-adc2.soc0Channel             = "ADC_CH_ADCIN9";
 adc2.soc1Channel             = "ADC_CH_ADCIN8";
 adc2.soc3Channel             = "ADC_CH_ADCIN3";
 adc2.soc3Trigger             = "ADC_TRIGGER_EPWM1_SOCA";
@@ -122,6 +120,8 @@ adc2.soc4IndependentNameMode = true;
 adc2.soc4Channel             = "ADC_CH_ADCIN12";
 adc2.soc4Trigger             = "ADC_TRIGGER_EPWM1_SOCA";
 adc2.soc4SampleWindow        = 9;
+adc2.soc0Name                = "SIN_FS";
+adc2.soc0Channel             = "ADC_CH_ADCIN2";
 
 adc3.$name                   = "IRIS_ADCC";
 adc3.adcBase                 = "ADCC_BASE";
