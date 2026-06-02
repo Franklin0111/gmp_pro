@@ -1,0 +1,5 @@
+/Debug/*
+!/Debug/syscfg/
+/Debug/syscfg/*
+!/Debug/syscfg/*.c
+!/Debug/syscfg/*.h
