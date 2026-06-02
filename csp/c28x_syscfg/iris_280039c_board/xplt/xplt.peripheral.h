@@ -23,8 +23,9 @@ extern "C"
 // select ADC PTR interface
 #include <ctl/component/interface/adc_ptr_channel.h>
 
-// select ADC interface
+// my added path
 #include <ctl/component/interface/adc_channel.h>
+#include <ctl/component/intrinsic/discrete/discrete_filter.h>
 
 //=================================================================================================
 // definitions of peripheral
@@ -57,6 +58,8 @@ extern adc_gt sin_fs;
 extern adc_channel_t adc_sin_source;
 extern adc_channel_t adc_sin_fs;
 extern ctrl_gt dac_result;
+extern ctl_filter_IIR1_t sin_source_hpf;
+extern ctl_filter_IIR1_t sin_fs_hpf;
 
 void reset_controller(void);
 
