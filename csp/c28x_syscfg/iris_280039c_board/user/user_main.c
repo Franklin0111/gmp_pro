@@ -148,6 +148,31 @@ gmp_task_status_t tsk_blink(gmp_task_t* tsk)
     return GMP_TASK_DONE;
 }
 
+gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
+{
+    GMP_UNUSED_VAR(tsk);
+
+    if (capsource_ready && capps_ready)
+    {
+        int32_t raw_delta = (int32_t)(capps_count - capsource_count);
+
+        phase_delta_count = raw_delta - ecap_offset_count;
+
+        if (phase_period_count > 0)
+        {
+            phase_deg = ((float)phase_delta_count / (float)phase_period_count) * 360.0f;
+        }
+
+        capsource_ready = 0;
+        capps_ready = 0;
+
+        ECAP_reArm(capsource_BASE);
+        ECAP_reArm(capps_BASE);
+    }
+
+    return GMP_TASK_DONE;
+}
+
 //
 // Non-blocking task scheduler
 //
@@ -162,6 +187,7 @@ gmp_task_t tasks[] = {
     {"flush_key", tsk_key_flush, 100, 10, 0, (void*)&ht16k33},
     {"flush_led", tsk_LED_flush, 500, 200, 0, (void*)&ht16k33},
     {"startup", tsk_startup, 500, 0, 1, NULL},
+    {"phase_update", tsk_phase_update, 1, 0, 1, NULL},
 };
 
 //=================================================================================================
