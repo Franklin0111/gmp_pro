@@ -53,6 +53,10 @@ float phase_deg = 0.0f;
 uint16_t phase_display_deg = 0;
 uint16_t phase_alarm_enable = 1;
 uint16_t phase_alarm_state = 0;
+uint16_t key_scan_id = 0;
+uint16_t key_scan_ret = 0;
+uint32_t key_scan_count = 0;
+uint32_t key_sw1_count = 0;
 
 //=================================================================================================
 // peripheral setup function

@@ -99,23 +99,35 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 {
     ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
     fast_gt key_id = 0;
+    static fast_gt last_key_id = 0;
 
     ec_gt ret = ht16k33_read_keys(dev, &key_id);
+    key_scan_count += 1UL;
+    key_scan_ret = (uint16_t)ret;
+    key_scan_id = (uint16_t)key_id;
 
     // if meets error, close this task
     if (ret != GMP_EC_OK)
     {
         tsk->is_enabled = 0;
+        return GMP_TASK_DONE;
     }
 
-    if (key_id != 0)
+    if ((key_id == 8) && (last_key_id != 8))
     {
-        // response key message
-        update_led_content_8byte(dev, led_lut[2], led_lut[0], led_lut[2], led_lut[6], led_lut[20], led_lut[key_id / 10],
-                                 led_lut[key_id % 10], led_lut[20]);
+        key_sw1_count += 1UL;
+        phase_alarm_enable = (uint16_t)!phase_alarm_enable;
 
-        gmp_base_print("Receive Key Message, %d\r\n", key_id);
+        if (phase_alarm_enable == 0U)
+        {
+            phase_alarm_state = 0U;
+            beep_off();
+        }
+
+        gmp_base_print("Phase alarm %s\r\n", phase_alarm_enable ? "ON" : "OFF");
     }
+
+    last_key_id = key_id;
 
     return GMP_TASK_DONE;
 }
