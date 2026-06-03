@@ -127,6 +127,12 @@ gmp_task_status_t tsk_dl_debug_device(gmp_task_t* tsk)
 // GPIO
 gpio_halt user_led;
 
+#define PHASE_ALARM_NONE  0U
+#define PHASE_ALARM_LOWER 1U
+#define PHASE_ALARM_UPPER 2U
+
+#define LED_LUT_BLANK 22U
+
 gmp_task_status_t tsk_blink(gmp_task_t* tsk)
 {
     GMP_UNUSED_VAR(tsk);
@@ -148,10 +154,184 @@ gmp_task_status_t tsk_blink(gmp_task_t* tsk)
     return GMP_TASK_DONE;
 }
 
+static uint16_t phase_abs_round_deg(float deg)
+{
+    int16_t rounded_deg;
+
+    if (deg >= 0.0f)
+    {
+        rounded_deg = (int16_t)(deg + 0.5f);
+    }
+    else
+    {
+        rounded_deg = (int16_t)(deg - 0.5f);
+        rounded_deg = (int16_t)(-rounded_deg);
+    }
+
+    if (rounded_deg > 999)
+    {
+        rounded_deg = 999;
+    }
+
+    return (uint16_t)rounded_deg;
+}
+
+gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
+{
+    GMP_UNUSED_VAR(tsk);
+
+    if (capsource_ready && capps_ready)
+    {
+        int32_t raw_delta = (int32_t)(capps_count - capsource_count);
+        int32_t period_count = (int32_t)phase_period_count;
+
+        phase_delta_count = raw_delta - ecap_offset_count;
+
+        if (period_count > 0)
+        {
+            int32_t half_period_count = period_count / 2;
+
+            while (phase_delta_count > half_period_count)
+            {
+                phase_delta_count -= period_count;
+            }
+            while (phase_delta_count < -half_period_count)
+            {
+                phase_delta_count += period_count;
+            }
+
+            phase_deg = ((float)phase_delta_count / (float)period_count) * 360.0f;
+            phase_display_deg = phase_abs_round_deg(phase_deg);
+        }
+
+        capsource_ready = 0;
+        capps_ready = 0;
+
+        ECAP_reArm(capsource_BASE);
+        ECAP_reArm(capps_BASE);
+    }
+
+    return GMP_TASK_DONE;
+}
+
+static void phase_display_blank(ht16k33_dev_t* dev)
+{
+    update_led_content_8byte(dev, led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK],
+                             led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK],
+                             led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK]);
+}
+
+static void phase_display_value(ht16k33_dev_t* dev, uint16_t deg)
+{
+    if (deg > 999U)
+    {
+        deg = 999U;
+    }
+
+    update_led_content_8byte(dev, led_lut[deg / 100U], led_lut[(deg / 10U) % 10U], led_lut[deg % 10U],
+                             led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK],
+                             led_lut[LED_LUT_BLANK], led_lut[LED_LUT_BLANK]);
+}
+
+gmp_task_status_t tsk_phase_display(gmp_task_t* tsk)
+{
+    ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
+    static uint16_t blink_state = 0;
+
+    if (phase_alarm_state != PHASE_ALARM_NONE)
+    {
+        blink_state = (uint16_t)!blink_state;
+
+        if (blink_state)
+        {
+            phase_display_value(dev, phase_display_deg);
+        }
+        else
+        {
+            phase_display_blank(dev);
+        }
+    }
+    else
+    {
+        blink_state = 0;
+        phase_display_value(dev, phase_display_deg);
+    }
+
+    return GMP_TASK_DONE;
+}
+
+gmp_task_status_t tsk_phase_alarm(gmp_task_t* tsk)
+{
+    GMP_UNUSED_VAR(tsk);
+
+    static uint16_t beep_tick = 0;
+    static uint16_t beep_state = 0;
+    static uint16_t last_alarm_state = PHASE_ALARM_NONE;
+
+    if (phase_alarm_enable == 0U)
+    {
+        phase_alarm_state = PHASE_ALARM_NONE;
+    }
+    else if (phase_display_deg <= 3U)
+    {
+        phase_alarm_state = PHASE_ALARM_LOWER;
+    }
+    else if (phase_display_deg >= 97U)
+    {
+        phase_alarm_state = PHASE_ALARM_UPPER;
+    }
+    else
+    {
+        phase_alarm_state = PHASE_ALARM_NONE;
+    }
+
+    if (phase_alarm_state == PHASE_ALARM_NONE)
+    {
+        beep_tick = 0;
+        beep_state = 0;
+        last_alarm_state = PHASE_ALARM_NONE;
+        beep_off();
+
+        return GMP_TASK_DONE;
+    }
+
+    if (phase_alarm_state != last_alarm_state)
+    {
+        beep_tick = 0;
+        beep_state = 0;
+        last_alarm_state = phase_alarm_state;
+        beep_off();
+    }
+
+    beep_tick += 1U;
+
+    if ((phase_alarm_state == PHASE_ALARM_UPPER) || (beep_tick >= 5U))
+    {
+        beep_tick = 0;
+        beep_state = (uint16_t)!beep_state;
+
+        if (beep_state)
+        {
+            beep_on();
+        }
+        else
+        {
+            beep_off();
+        }
+    }
+
+    return GMP_TASK_DONE;
+}
+
 //
 // Non-blocking task scheduler
 //
 gmp_scheduler_t sched;
+
+#define TASK_INDEX_FLUSH_KEY     3U
+#define TASK_INDEX_FLUSH_LED     4U
+#define TASK_INDEX_PHASE_DISPLAY 7U
+#define TASK_INDEX_PHASE_ALARM   8U
 
 // All tasks must be non blocking tasks
 gmp_task_t tasks[] = {
@@ -162,6 +342,9 @@ gmp_task_t tasks[] = {
     {"flush_key", tsk_key_flush, 100, 10, 0, (void*)&ht16k33},
     {"flush_led", tsk_LED_flush, 500, 200, 0, (void*)&ht16k33},
     {"startup", tsk_startup, 500, 0, 1, NULL},
+    {"phase_update", tsk_phase_update, 1, 0, 1, NULL},
+    {"phase_display", tsk_phase_display, 500, 100, 0, (void*)&ht16k33},
+    {"phase_alarm", tsk_phase_alarm, 100, 50, 0, NULL},
 };
 
 //=================================================================================================
@@ -216,8 +399,10 @@ gmp_task_status_t tsk_startup(gmp_task_t* tsk)
 
         if (ec == GMP_EC_OK)
         {
-            sched.task_list[2]->is_enabled = 1;
-            sched.task_list[3]->is_enabled = 1;
+            sched.task_list[TASK_INDEX_FLUSH_KEY]->is_enabled = 1;
+            sched.task_list[TASK_INDEX_FLUSH_LED]->is_enabled = 1;
+            sched.task_list[TASK_INDEX_PHASE_DISPLAY]->is_enabled = 1;
+            sched.task_list[TASK_INDEX_PHASE_ALARM]->is_enabled = 1;
         }
 
         hdc1080_config_reg_t hdc1080_cfg = {.all = 0};

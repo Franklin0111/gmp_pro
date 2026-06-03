@@ -48,6 +48,20 @@ extern adc_gt udc_src;
 extern ptr_adc_channel_t idc;
 extern adc_gt idc_src;
 
+// eCAP phase measurement
+extern volatile uint32_t capsource_count;
+extern volatile uint32_t capps_count;
+extern volatile uint16_t capsource_ready;
+extern volatile uint16_t capps_ready;
+
+extern int32_t ecap_offset_count;
+extern int32_t phase_delta_count;
+extern uint32_t phase_period_count;
+extern float phase_deg;
+extern uint16_t phase_display_deg;
+extern uint16_t phase_alarm_enable;
+extern uint16_t phase_alarm_state;
+
 void reset_controller(void);
 
 uint16_t SPI_readReg(uint16_t addr);

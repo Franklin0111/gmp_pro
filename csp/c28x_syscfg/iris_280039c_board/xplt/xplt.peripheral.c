@@ -40,6 +40,20 @@ adc_gt udc_src;
 ptr_adc_channel_t idc;
 adc_gt idc_src;
 
+// eCAP phase measurement
+volatile uint32_t capsource_count = 0;
+volatile uint32_t capps_count = 0;
+volatile uint16_t capsource_ready = 0;
+volatile uint16_t capps_ready = 0;
+
+int32_t ecap_offset_count = 47;
+int32_t phase_delta_count = 0;
+uint32_t phase_period_count = 120000UL;
+float phase_deg = 0.0f;
+uint16_t phase_display_deg = 0;
+uint16_t phase_alarm_enable = 1;
+uint16_t phase_alarm_state = 0;
+
 //=================================================================================================
 // peripheral setup function
 
@@ -118,6 +132,29 @@ void setup_peripheral(void)
 
     gpio_beep = IRIS_GPIO1;
 
+    ECAP_stopCounter(capsource_BASE);
+    ECAP_stopCounter(capps_BASE);
+
+    ECAP_disableLoadCounter(capsource_BASE);
+    ECAP_disableLoadCounter(capps_BASE);
+
+    ECAP_resetCounters(capsource_BASE);
+    ECAP_resetCounters(capps_BASE);
+
+    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearGlobalInterrupt(capsource_BASE);
+    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearGlobalInterrupt(capps_BASE);
+
+    capsource_ready = 0;
+    capps_ready = 0;
+
+    ECAP_reArm(capsource_BASE);
+    ECAP_reArm(capps_BASE);
+
+    ECAP_startCounter(capsource_BASE);
+    ECAP_startCounter(capps_BASE);
+
 }
 
 
@@ -156,6 +193,28 @@ interrupt void MainISR(void)
     // Acknowledge the interrupt
     //
     Interrupt_clearACKGroup(INT_IRIS_ADCA_1_INTERRUPT_ACK_GROUP);
+}
+
+interrupt void INT_capsource_ISR(void)
+{
+    capsource_count = ECAP_getEventTimeStamp(capsource_BASE, ECAP_EVENT_1);
+    capsource_ready = 1;
+
+    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearGlobalInterrupt(capsource_BASE);
+
+    Interrupt_clearACKGroup(INT_capsource_INTERRUPT_ACK_GROUP);
+}
+
+interrupt void INT_capps_ISR(void)
+{
+    capps_count = ECAP_getEventTimeStamp(capps_BASE, ECAP_EVENT_1);
+    capps_ready = 1;
+
+    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearGlobalInterrupt(capps_BASE);
+
+    Interrupt_clearACKGroup(INT_capps_INTERRUPT_ACK_GROUP);
 }
 
 void reset_controller(void)

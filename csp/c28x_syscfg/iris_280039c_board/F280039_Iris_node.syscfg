@@ -1,60 +1,66 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "F28003x" --part "F28003x_100PZ" --package "100PZ" --context "system" --product "C2000WARE@5.03.00.00" --product "gmp_pro@1.00.00.05"
- * @v2CliArgs --device "TMS320F280039C" --package "100PZ" --context "system" --product "C2000WARE@5.03.00.00" --product "gmp_pro@1.00.00.05"
+ * @cliArgs --device "F28003x" --part "F28003x_100PZ" --package "100PZ" --context "system" --product "C2000WARE@5.04.00.00" --product "gmp_pro@1.00.00.05"
+ * @v2CliArgs --device "TMS320F280039C" --package "100PZ" --context "system" --product "C2000WARE@5.04.00.00" --product "gmp_pro@1.00.00.05"
  * @versions {"tool":"1.21.0+3721"}
  */
 
 /**
  * Import the modules used in this configuration.
  */
-const adc            = scripting.addModule("/driverlib/adc.js", {}, false);
-const adc1           = adc.addInstance();
-const adc2           = adc.addInstance();
-const adc3           = adc.addInstance();
-const analog         = scripting.addModule("/driverlib/analog.js", {}, false);
-const analog1        = analog.addInstance();
-const fsi            = scripting.addModule("/driverlib/board_components/fsi", {}, false);
-const fsi1           = fsi.addInstance();
-const can            = scripting.addModule("/driverlib/can.js", {}, false);
-const can1           = can.addInstance();
-const cputimer       = scripting.addModule("/driverlib/cputimer.js", {}, false);
-const cputimer1      = cputimer.addInstance();
-const dac            = scripting.addModule("/driverlib/dac.js", {}, false);
-const dac1           = dac.addInstance();
-const dac2           = dac.addInstance();
-const device_support = scripting.addModule("/driverlib/device_support.js");
-const epwm           = scripting.addModule("/driverlib/epwm.js", {}, false);
-const epwm1          = epwm.addInstance();
-const epwm2          = epwm.addInstance();
-const epwm3          = epwm.addInstance();
-const epwm4          = epwm.addInstance();
-const epwm5          = epwm.addInstance();
-const epwm6          = epwm.addInstance();
-const eqep           = scripting.addModule("/driverlib/eqep.js", {}, false);
-const eqep1          = eqep.addInstance();
-const eqep2          = eqep.addInstance();
-const gpio           = scripting.addModule("/driverlib/gpio.js", {}, false);
-const gpio1          = gpio.addInstance();
-const gpio2          = gpio.addInstance();
-const gpio3          = gpio.addInstance();
-const gpio4          = gpio.addInstance();
-const gpio5          = gpio.addInstance();
-const gpio6          = gpio.addInstance();
-const gpio7          = gpio.addInstance();
-const gpio8          = gpio.addInstance();
-const gpio9          = gpio.addInstance();
-const i2c            = scripting.addModule("/driverlib/i2c.js", {}, false);
-const i2c1           = i2c.addInstance();
-const other          = scripting.addModule("/driverlib/other.js", {}, false);
-const other1         = other.addInstance();
-const sci            = scripting.addModule("/driverlib/sci.js", {}, false);
-const sci1           = sci.addInstance();
-const sci2           = sci.addInstance();
-const spi            = scripting.addModule("/driverlib/spi.js", {}, false);
-const spi1           = spi.addInstance();
-const spi2           = spi.addInstance();
+const adc              = scripting.addModule("/driverlib/adc.js", {}, false);
+const adc1             = adc.addInstance();
+const adc2             = adc.addInstance();
+const adc3             = adc.addInstance();
+const analog           = scripting.addModule("/driverlib/analog.js", {}, false);
+const analog1          = analog.addInstance();
+const fsi              = scripting.addModule("/driverlib/board_components/fsi", {}, false);
+const fsi1             = fsi.addInstance();
+const can              = scripting.addModule("/driverlib/can.js", {}, false);
+const can1             = can.addInstance();
+const cputimer         = scripting.addModule("/driverlib/cputimer.js", {}, false);
+const cputimer1        = cputimer.addInstance();
+const dac              = scripting.addModule("/driverlib/dac.js", {}, false);
+const dac1             = dac.addInstance();
+const dac2             = dac.addInstance();
+const device_support   = scripting.addModule("/driverlib/device_support.js");
+const ecap             = scripting.addModule("/driverlib/ecap.js", {}, false);
+const ecap1            = ecap.addInstance();
+const ecap2            = ecap.addInstance();
+const epwm             = scripting.addModule("/driverlib/epwm.js", {}, false);
+const epwm1            = epwm.addInstance();
+const epwm2            = epwm.addInstance();
+const epwm3            = epwm.addInstance();
+const epwm4            = epwm.addInstance();
+const epwm5            = epwm.addInstance();
+const epwm6            = epwm.addInstance();
+const eqep             = scripting.addModule("/driverlib/eqep.js", {}, false);
+const eqep1            = eqep.addInstance();
+const eqep2            = eqep.addInstance();
+const gpio             = scripting.addModule("/driverlib/gpio.js", {}, false);
+const gpio1            = gpio.addInstance();
+const gpio2            = gpio.addInstance();
+const gpio3            = gpio.addInstance();
+const gpio4            = gpio.addInstance();
+const gpio5            = gpio.addInstance();
+const gpio6            = gpio.addInstance();
+const gpio7            = gpio.addInstance();
+const gpio8            = gpio.addInstance();
+const gpio9            = gpio.addInstance();
+const i2c              = scripting.addModule("/driverlib/i2c.js", {}, false);
+const i2c1             = i2c.addInstance();
+const inputxbar_input  = scripting.addModule("/driverlib/inputxbar_input.js", {}, false);
+const inputxbar_input1 = inputxbar_input.addInstance();
+const inputxbar_input2 = inputxbar_input.addInstance();
+const other            = scripting.addModule("/driverlib/other.js", {}, false);
+const other1           = other.addInstance();
+const sci              = scripting.addModule("/driverlib/sci.js", {}, false);
+const sci1             = sci.addInstance();
+const sci2             = sci.addInstance();
+const spi              = scripting.addModule("/driverlib/spi.js", {}, false);
+const spi1             = spi.addInstance();
+const spi2             = spi.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -288,6 +294,23 @@ analog1.analog.c1Pin.$assign                     = "C1";
 analog1.analog.c14Pin.$assign                    = "C14";
 analog1.analog["c2/b12Pin"].$assign              = "C2/B12";
 analog1.analog["c3/a7Pin"].$assign               = "C3/A7";
+
+ecap1.$name                   = "capsource";
+ecap1.captureMode             = "ECAP_ONE_SHOT_CAPTURE_MODE";
+ecap1.registerInterrupts      = true;
+ecap1.enableInterrupt         = true;
+ecap1.interruptSourceCapture  = ["ECAP_ISR_SOURCE_CAPTURE_EVENT_1"];
+ecap1.ecapInput               = "ECAP_INPUT_INPUTXBAR1";
+ecap1.ecapInt.enableInterrupt = true;
+
+ecap2.ecapBase                = "ECAP2_BASE";
+ecap2.captureMode             = "ECAP_ONE_SHOT_CAPTURE_MODE";
+ecap2.registerInterrupts      = true;
+ecap2.enableInterrupt         = true;
+ecap2.ecapInput               = "ECAP_INPUT_INPUTXBAR2";
+ecap2.interruptSourceCapture  = ["ECAP_ISR_SOURCE_CAPTURE_EVENT_1"];
+ecap2.$name                   = "capps";
+ecap2.ecapInt.enableInterrupt = true;
 
 epwm1.$name                                                      = "IRIS_EPWM1";
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEnable                  = true;
@@ -559,6 +582,13 @@ i2c1.i2c.i2c_sdaPin.$assign = "GPIO56";
 i2c1.i2c.i2c_sclPin.$assign = "GPIO57";
 i2c1.sdaQual.padConfig      = "OD";
 i2c1.sclQual.padConfig      = "OD";
+
+inputxbar_input1.$name         = "myINPUTXBARINPUT0";
+inputxbar_input1.inputxbarGpio = "GPIO47";
+
+inputxbar_input2.$name          = "myINPUTXBARINPUT1";
+inputxbar_input2.inputxbarInput = "XBAR_INPUT2";
+inputxbar_input2.inputxbarGpio  = "GPIO34";
 
 other1.useCase                   = "CUSTOM";
 other1.useInterfacePins          = ["ADCSOCAO","SYNCOUT","TDI","TDO","X1","XCLKOUT","XRSn"];
