@@ -47,12 +47,9 @@ volatile uint16_t capsource_ready = 0;
 volatile uint16_t capps_ready = 0;
 
 int32_t ecap_offset_count = 47;
-int32_t phase_raw_delta_count = 0;
 int32_t phase_delta_count = 0;
-int32_t phase_deg_x100 = 0;
 uint32_t phase_period_count = 120000UL;
 float phase_deg = 0.0f;
-float phase_deg_display = 0.0f;
 
 //=================================================================================================
 // peripheral setup function
