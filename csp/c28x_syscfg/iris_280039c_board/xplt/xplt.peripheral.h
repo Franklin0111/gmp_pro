@@ -58,6 +58,9 @@ extern int32_t ecap_offset_count;
 extern int32_t phase_delta_count;
 extern uint32_t phase_period_count;
 extern float phase_deg;
+extern uint16_t phase_display_deg;
+extern uint16_t phase_alarm_enable;
+extern uint16_t phase_alarm_state;
 
 void reset_controller(void);
 

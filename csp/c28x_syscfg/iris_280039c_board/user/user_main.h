@@ -34,6 +34,7 @@ extern "C"
 extern iic_halt iic_bus;
 extern ht16k33_dev_t ht16k33;
 extern hdc1080_dev_t hdc1080;
+extern const unsigned char led_lut[];
 
 //=================================================================================================
 // global functions
@@ -56,11 +57,15 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk);
 gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk);
 gmp_task_status_t fpga_test_task(gmp_task_t* tsk);
 gmp_task_status_t tsk_phase_update(gmp_task_t* tsk);
+gmp_task_status_t tsk_phase_display(gmp_task_t* tsk);
+gmp_task_status_t tsk_phase_alarm(gmp_task_t* tsk);
 
 
 // peripheral function
 void beep_on();
 void beep_off();
+void update_led_content_8byte(ht16k33_dev_t* dev, uint16_t ch1, uint16_t ch2, uint16_t ch3, uint16_t ch4, uint16_t ch5,
+                              uint16_t ch6, uint16_t ch7, uint16_t ch8);
 
 
 

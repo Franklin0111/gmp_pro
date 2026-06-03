@@ -50,6 +50,9 @@ int32_t ecap_offset_count = 47;
 int32_t phase_delta_count = 0;
 uint32_t phase_period_count = 120000UL;
 float phase_deg = 0.0f;
+uint16_t phase_display_deg = 0;
+uint16_t phase_alarm_enable = 1;
+uint16_t phase_alarm_state = 0;
 
 //=================================================================================================
 // peripheral setup function
