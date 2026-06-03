@@ -23,10 +23,14 @@ extern "C"
 //=================================================================================================
 // Controller interface
 
+
 // Input Callback
 GMP_STATIC_INLINE void ctl_input_callback(void)
 {
-
+    sin_source=ADC_readResult(SIN_SOURCE_RESULT_BASE,SIN_SOURCE);
+    sin_fs=ADC_readResult(SIN_FS_RESULT_BASE,SIN_FS);
+    ctl_step_adc_channel (&adc_sin_source,sin_source );
+    ctl_step_adc_channel (&adc_sin_fs,sin_fs);
 }
 
 // Output Callback
@@ -35,7 +39,7 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
 
     EPWM_setCounterCompareValue(IRIS_EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 1500);
 
-    DAC_setShadowValue(IRIS_DACA_BASE, iabc.control_port.value.dat[phase_C] * 2048 + 2048);
+    DAC_setShadowValue(IRIS_DACA_BASE, dac_result * 2048 + 2048);
     DAC_setShadowValue(IRIS_DACB_BASE, iuvw.control_port.value.dat[phase_C] * 2048 + 2048);
 
 }

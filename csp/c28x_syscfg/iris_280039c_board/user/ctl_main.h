@@ -40,10 +40,17 @@ void clear_all_controllers();
 //=================================================================================================
 // controller process
 
+
 // periodic callback function things.
 GMP_STATIC_INLINE void ctl_dispatch(void)
 {
+    ctrl_gt sin_source_ac =
+    ctl_step_filter_iir1(&sin_source_hpf, adc_sin_source.control_port.value);
 
+    ctrl_gt sin_fs_ac =
+    ctl_step_filter_iir1(&sin_fs_hpf, adc_sin_fs.control_port.value);
+
+    dac_result=50.0f*(sin_source_ac * sin_fs_ac);
 }
 
 #ifdef __cplusplus

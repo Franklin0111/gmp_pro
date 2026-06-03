@@ -34,6 +34,8 @@
 
 void ctl_init()
 {
+    ctl_init_filter_iir1_hpf(&sin_source_hpf, 200000.0f, 10.0f);
+    ctl_init_filter_iir1_hpf(&sin_fs_hpf,     200000.0f, 10.0f);
 
 }
 
