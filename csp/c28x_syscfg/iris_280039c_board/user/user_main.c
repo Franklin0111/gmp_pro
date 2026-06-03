@@ -155,12 +155,24 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
     if (capsource_ready && capps_ready)
     {
         int32_t raw_delta = (int32_t)(capps_count - capsource_count);
+        int32_t period_count = (int32_t)phase_period_count;
 
         phase_delta_count = raw_delta - ecap_offset_count;
 
-        if (phase_period_count > 0)
+        if (period_count > 0)
         {
-            phase_deg = ((float)phase_delta_count / (float)phase_period_count) * 360.0f;
+            int32_t half_period_count = period_count / 2;
+
+            if (phase_delta_count > half_period_count)
+            {
+                phase_delta_count -= period_count;
+            }
+            else if (phase_delta_count < -half_period_count)
+            {
+                phase_delta_count += period_count;
+            }
+
+            phase_deg = ((float)phase_delta_count / (float)period_count) * 360.0f;
         }
 
         capsource_ready = 0;
