@@ -61,10 +61,6 @@ extern float phase_deg;
 extern uint16_t phase_display_deg;
 extern uint16_t phase_alarm_enable;
 extern uint16_t phase_alarm_state;
-extern uint16_t key_scan_id;
-extern uint16_t key_scan_ret;
-extern uint32_t key_scan_count;
-extern uint32_t key_sw1_count;
 
 void reset_controller(void);
 

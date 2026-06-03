@@ -102,9 +102,6 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
     static fast_gt last_key_id = 0;
 
     ec_gt ret = ht16k33_read_keys(dev, &key_id);
-    key_scan_count += 1UL;
-    key_scan_ret = (uint16_t)ret;
-    key_scan_id = (uint16_t)key_id;
 
     // if meets error, close this task
     if (ret != GMP_EC_OK)
@@ -115,7 +112,6 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 
     if ((key_id == 8) && (last_key_id != 8))
     {
-        key_sw1_count += 1UL;
         phase_alarm_enable = (uint16_t)!phase_alarm_enable;
 
         if (phase_alarm_enable == 0U)
