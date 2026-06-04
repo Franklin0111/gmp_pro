@@ -39,7 +39,18 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
 
     EPWM_setCounterCompareValue(IRIS_EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 1500);
 
-    DAC_setShadowValue(IRIS_DACA_BASE, dac_result * 2048 + 2048);
+    float32_t daca_code = dac_result * 2048.0f + 2018.0f; // offset 0 -> 0.019V; 4095 -> 3.31V ; 2048 -> 1.674V
+
+    if (daca_code < 0.0f)
+    {
+        daca_code = 0.0f;
+    }
+    else if (daca_code > 4095.0f)
+    {
+        daca_code = 4095.0f;
+    }
+
+    DAC_setShadowValue(IRIS_DACA_BASE, (uint16_t)daca_code);
     DAC_setShadowValue(IRIS_DACB_BASE, iuvw.control_port.value.dat[phase_C] * 2048 + 2048);
 
 }
