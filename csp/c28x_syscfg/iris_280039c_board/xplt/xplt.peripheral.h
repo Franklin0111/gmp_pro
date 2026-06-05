@@ -55,6 +55,8 @@ extern adc_gt idc_src;
 // eCAP phase measurement
 extern volatile uint32_t capsource_count;
 extern volatile uint32_t capps_count;
+extern volatile uint32_t capsource_period_count;
+extern volatile uint32_t capps_period_count;
 extern volatile uint16_t capsource_ready;
 extern volatile uint16_t capps_ready;
 

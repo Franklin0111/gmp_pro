@@ -1060,7 +1060,7 @@ void capsource_init(){
 	//
 	// Sets the capture mode.
 	//
-	ECAP_setCaptureMode(capsource_BASE,ECAP_ONE_SHOT_CAPTURE_MODE,ECAP_EVENT_1);
+	ECAP_setCaptureMode(capsource_BASE,ECAP_ONE_SHOT_CAPTURE_MODE,ECAP_EVENT_3);
 	//
 	// Sets the Capture event prescaler.
 	//
@@ -1069,7 +1069,7 @@ void capsource_init(){
 	// Sets the Capture event polarity.
 	//
 	ECAP_setEventPolarity(capsource_BASE,ECAP_EVENT_1,ECAP_EVNT_RISING_EDGE);
-	ECAP_setEventPolarity(capsource_BASE,ECAP_EVENT_2,ECAP_EVNT_RISING_EDGE);
+	ECAP_setEventPolarity(capsource_BASE,ECAP_EVENT_2,ECAP_EVNT_FALLING_EDGE);
 	ECAP_setEventPolarity(capsource_BASE,ECAP_EVENT_3,ECAP_EVNT_RISING_EDGE);
 	ECAP_setEventPolarity(capsource_BASE,ECAP_EVENT_4,ECAP_EVNT_RISING_EDGE);
 	//
@@ -1118,7 +1118,7 @@ void capsource_init(){
 	//
 	// Enables interrupt source for capsource.
 	//
-	ECAP_enableInterrupt(capsource_BASE,(ECAP_ISR_SOURCE_CAPTURE_EVENT_1));
+	ECAP_enableInterrupt(capsource_BASE,(ECAP_ISR_SOURCE_CAPTURE_EVENT_3));
 
     //-----------------Signal Monitoring--------------------//
 }
@@ -1157,7 +1157,7 @@ void capps_init(){
 	//
 	// Sets the capture mode.
 	//
-	ECAP_setCaptureMode(capps_BASE,ECAP_ONE_SHOT_CAPTURE_MODE,ECAP_EVENT_1);
+	ECAP_setCaptureMode(capps_BASE,ECAP_ONE_SHOT_CAPTURE_MODE,ECAP_EVENT_3);
 	//
 	// Sets the Capture event prescaler.
 	//
@@ -1166,7 +1166,7 @@ void capps_init(){
 	// Sets the Capture event polarity.
 	//
 	ECAP_setEventPolarity(capps_BASE,ECAP_EVENT_1,ECAP_EVNT_RISING_EDGE);
-	ECAP_setEventPolarity(capps_BASE,ECAP_EVENT_2,ECAP_EVNT_RISING_EDGE);
+	ECAP_setEventPolarity(capps_BASE,ECAP_EVENT_2,ECAP_EVNT_FALLING_EDGE);
 	ECAP_setEventPolarity(capps_BASE,ECAP_EVENT_3,ECAP_EVNT_RISING_EDGE);
 	ECAP_setEventPolarity(capps_BASE,ECAP_EVENT_4,ECAP_EVNT_RISING_EDGE);
 	//
@@ -1215,7 +1215,7 @@ void capps_init(){
 	//
 	// Enables interrupt source for capps.
 	//
-	ECAP_enableInterrupt(capps_BASE,(ECAP_ISR_SOURCE_CAPTURE_EVENT_1));
+	ECAP_enableInterrupt(capps_BASE,(ECAP_ISR_SOURCE_CAPTURE_EVENT_3));
 
     //-----------------Signal Monitoring--------------------//
 }

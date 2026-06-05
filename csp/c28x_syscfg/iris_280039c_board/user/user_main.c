@@ -185,7 +185,16 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
     if (capsource_ready && capps_ready)
     {
         int32_t raw_delta = (int32_t)(capps_count - capsource_count);
-        int32_t period_count = (int32_t)phase_period_count;
+        uint32_t period_count_avg = 0U;
+        int32_t period_count;
+
+        if ((capsource_period_count > 0U) && (capps_period_count > 0U))
+        {
+            period_count_avg = (capsource_period_count + capps_period_count) / 2U;
+            phase_period_count = period_count_avg;
+        }
+
+        period_count = (int32_t)phase_period_count;
 
         phase_delta_count = raw_delta - ecap_offset_count;
 

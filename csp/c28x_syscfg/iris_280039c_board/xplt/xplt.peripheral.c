@@ -14,7 +14,6 @@
 #include "user_main.h"
 #include <xplt.peripheral.h>
 
-
 //=================================================================================================
 // definitions of peripheral
 
@@ -43,6 +42,8 @@ adc_gt idc_src;
 // eCAP phase measurement
 volatile uint32_t capsource_count = 0;
 volatile uint32_t capps_count = 0;
+volatile uint32_t capsource_period_count = 0;
+volatile uint32_t capps_period_count = 0;
 volatile uint16_t capsource_ready = 0;
 volatile uint16_t capps_ready = 0;
 
@@ -60,7 +61,6 @@ uint16_t phase_alarm_state = 0;
 extern iic_halt iic_bus;
 extern gpio_halt user_led;
 extern gpio_halt gpio_beep;
-
 
 //my variable define
 adc_gt sin_source;
@@ -110,8 +110,6 @@ void initI2C()
     I2C_enableModule(I2CA_BASE);
 }
 
-
-
 // User should setup all the peripheral in this function.
 void setup_peripheral(void)
 {
@@ -152,19 +150,20 @@ void setup_peripheral(void)
     ECAP_stopCounter(capsource_BASE);
     ECAP_stopCounter(capps_BASE);
 
-    ECAP_disableLoadCounter(capsource_BASE);
-    ECAP_disableLoadCounter(capps_BASE);
-
     ECAP_resetCounters(capsource_BASE);
     ECAP_resetCounters(capps_BASE);
 
-    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1 | ECAP_ISR_SOURCE_CAPTURE_EVENT_2 |
+                                      ECAP_ISR_SOURCE_CAPTURE_EVENT_3 | ECAP_ISR_SOURCE_CAPTURE_EVENT_4);
     ECAP_clearGlobalInterrupt(capsource_BASE);
-    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1 | ECAP_ISR_SOURCE_CAPTURE_EVENT_2 |
+                                  ECAP_ISR_SOURCE_CAPTURE_EVENT_3 | ECAP_ISR_SOURCE_CAPTURE_EVENT_4);
     ECAP_clearGlobalInterrupt(capps_BASE);
 
     capsource_ready = 0;
     capps_ready = 0;
+    capsource_period_count = 0;
+    capps_period_count = 0;
 
     ECAP_reArm(capsource_BASE);
     ECAP_reArm(capps_BASE);
@@ -172,8 +171,6 @@ void setup_peripheral(void)
     ECAP_startCounter(capsource_BASE);
     ECAP_startCounter(capps_BASE);
 }
-
-
 
 //=================================================================================================
 // ADC Interrupt ISR and controller related function
@@ -213,10 +210,15 @@ interrupt void MainISR(void)
 
 interrupt void INT_capsource_ISR(void)
 {
-    capsource_count = ECAP_getEventTimeStamp(capsource_BASE, ECAP_EVENT_1);
+    uint32_t cap1 = ECAP_getEventTimeStamp(capsource_BASE, ECAP_EVENT_1);
+    uint32_t cap3 = ECAP_getEventTimeStamp(capsource_BASE, ECAP_EVENT_3);
+
+    capsource_count = cap1;
+    capsource_period_count = cap3 - cap1;
     capsource_ready = 1;
 
-    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearInterrupt(capsource_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1 | ECAP_ISR_SOURCE_CAPTURE_EVENT_2 |
+                                      ECAP_ISR_SOURCE_CAPTURE_EVENT_3 | ECAP_ISR_SOURCE_CAPTURE_EVENT_4);
     ECAP_clearGlobalInterrupt(capsource_BASE);
 
     Interrupt_clearACKGroup(INT_capsource_INTERRUPT_ACK_GROUP);
@@ -224,10 +226,15 @@ interrupt void INT_capsource_ISR(void)
 
 interrupt void INT_capps_ISR(void)
 {
-    capps_count = ECAP_getEventTimeStamp(capps_BASE, ECAP_EVENT_1);
+    uint32_t cap1 = ECAP_getEventTimeStamp(capps_BASE, ECAP_EVENT_1);
+    uint32_t cap3 = ECAP_getEventTimeStamp(capps_BASE, ECAP_EVENT_3);
+
+    capps_count = cap1;
+    capps_period_count = cap3 - cap1;
     capps_ready = 1;
 
-    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1);
+    ECAP_clearInterrupt(capps_BASE, ECAP_ISR_SOURCE_CAPTURE_EVENT_1 | ECAP_ISR_SOURCE_CAPTURE_EVENT_2 |
+                                  ECAP_ISR_SOURCE_CAPTURE_EVENT_3 | ECAP_ISR_SOURCE_CAPTURE_EVENT_4);
     ECAP_clearGlobalInterrupt(capps_BASE);
 
     Interrupt_clearACKGroup(INT_capps_INTERRUPT_ACK_GROUP);
@@ -441,7 +448,6 @@ interrupt void INT_IRIS_UART_USB_RX_ISR(void)
 
 ////
 
-
 //=========================================================
 // 1. SPI ��д�ײ㺯����װ
 //=========================================================
@@ -489,5 +495,4 @@ uint16_t SPI_readReg(uint16_t addr)
 
     return read_data;
 }
-
 
