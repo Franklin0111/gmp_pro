@@ -568,7 +568,7 @@ gpio8.direction       = "GPIO_DIR_MODE_OUT";
 gpio8.gpioPin.$assign = "GPIO59";
 
 gpio9.$name           = "IRIS_GPIO_SPI_RST";
-gpio9.direction       = "GPIO_DIR_MODE_OUT";
+gpio9.direction       = "GPIO_DIR_MODE_IN";
 gpio9.gpioPin.$assign = "GPIO55";
 
 i2c1.$name                  = "IRIS_IIC";
@@ -592,7 +592,7 @@ inputxbar_input1.inputxbarGpio = "GPIO47";
 
 inputxbar_input2.$name          = "myINPUTXBARINPUT1";
 inputxbar_input2.inputxbarInput = "XBAR_INPUT2";
-inputxbar_input2.inputxbarGpio  = "GPIO34";
+inputxbar_input2.inputxbarGpio  = "GPIO55";
 
 other1.useCase                   = "CUSTOM";
 other1.useInterfacePins          = ["ADCSOCAO","SYNCOUT","TDI","TDO","X1","XCLKOUT","XRSn"];
