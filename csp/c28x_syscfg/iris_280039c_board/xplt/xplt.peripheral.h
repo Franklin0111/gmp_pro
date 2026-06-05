@@ -74,6 +74,10 @@ extern adc_channel_t adc_sin_fs;
 extern ctrl_gt dac_result;
 extern ctl_filter_IIR1_t sin_source_hpf;
 extern ctl_filter_IIR1_t sin_fs_hpf;
+extern ctrl_gt adc_product_raw;
+extern ctrl_gt adc_product_dc;
+extern volatile int16_t adc_product_dc_mv_x10;
+extern ctl_filter_IIR1_t adc_product_lpf;
 
 void reset_controller(void);
 

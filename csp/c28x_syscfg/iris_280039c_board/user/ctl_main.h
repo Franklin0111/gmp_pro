@@ -44,11 +44,39 @@ void clear_all_controllers();
 // periodic callback function things.
 GMP_STATIC_INLINE void ctl_dispatch(void)
 {
+    float32_t dc_mv_x10;
+
     ctrl_gt sin_source_ac =
     ctl_step_filter_iir1(&sin_source_hpf, adc_sin_source.control_port.value);
 
     ctrl_gt sin_fs_ac =
     ctl_step_filter_iir1(&sin_fs_hpf, adc_sin_fs.control_port.value);
+
+    adc_product_raw = sin_source_ac * sin_fs_ac;
+    adc_product_dc = ctl_step_filter_iir1(&adc_product_lpf, adc_product_raw);
+
+    dc_mv_x10 = adc_product_dc * 3.3f * 3.3f * 10000.0f;
+    if (dc_mv_x10 >= 0.0f)
+    {
+        dc_mv_x10 += 0.5f;
+    }
+    else
+    {
+        dc_mv_x10 -= 0.5f;
+    }
+
+    if (dc_mv_x10 > 999.0f)
+    {
+        adc_product_dc_mv_x10 = 999;
+    }
+    else if (dc_mv_x10 < -999.0f)
+    {
+        adc_product_dc_mv_x10 = -999;
+    }
+    else
+    {
+        adc_product_dc_mv_x10 = (int16_t)dc_mv_x10;
+    }
 
     dac_result=50.0f*(sin_source_ac * sin_fs_ac);
 }
