@@ -48,10 +48,15 @@ volatile uint16_t capsource_ready = 0;
 volatile uint16_t capps_ready = 0;
 
 int32_t ecap_offset_count = 47;
+volatile int32_t ecap_raw_delta_count = 0;
+volatile float32_t ecap_raw_phase_deg = 0.0f;
+volatile float32_t ecap_raw_delta_avg = 0.0f;
+volatile float32_t ecap_raw_phase_avg_deg = 0.0f;
 int32_t phase_delta_count = 0;
 uint32_t phase_period_count = 120000UL;
 float phase_deg = 0.0f;
 uint16_t phase_display_deg = 0;
+uint16_t phase_display_deg_x10 = 0;
 uint16_t phase_alarm_enable = 0;
 uint16_t phase_alarm_state = 0;
 
@@ -74,6 +79,38 @@ ctrl_gt adc_product_raw;
 ctrl_gt adc_product_dc;
 volatile uint16_t adc_product_output_mv = 1650U;
 ctl_filter_IIR1_t adc_product_lpf;
+
+// ADC/DAC calibration parameters and observations
+volatile uint16_t dac_cal_bias_code = 2030U;
+volatile float32_t dac_cal_scale_code = 2048.0f;
+volatile float32_t dac_cal_zero_mv = 19.0f;
+volatile float32_t dac_cal_fullscale_mv = 3310.0f;
+volatile uint16_t dac_cal_override_enable = 0U;
+volatile uint16_t dac_cal_override_code = 2030U;
+volatile uint16_t dac_output_code = 2030U;
+volatile float32_t dac_output_estimated_mv = 1650.0f;
+volatile float32_t adc_product_dc_code = 2030.0f;
+volatile float32_t adc_product_dac_estimated_mv = 1650.0f;
+volatile float32_t adc_product_output_estimated_mv = 1650.0f;
+volatile float32_t vo4_cal_gain = 1.0f;
+volatile float32_t vo4_cal_offset_mv = 0.0f;
+
+volatile uint16_t adc_cal_reset = 0U;
+volatile uint16_t adc_cal_ready = 0U;
+volatile uint32_t adc_cal_window_samples = 20000UL;
+volatile float32_t adc_cal_fullscale_mv = 3300.0f;
+volatile float32_t adc_cal_source_gain = 1.0f;
+volatile float32_t adc_cal_fs_gain = 1.0f;
+volatile float32_t adc_cal_source_avg_code = 0.0f;
+volatile float32_t adc_cal_fs_avg_code = 0.0f;
+volatile uint16_t adc_cal_source_min_code = 0U;
+volatile uint16_t adc_cal_source_max_code = 0U;
+volatile uint16_t adc_cal_fs_min_code = 0U;
+volatile uint16_t adc_cal_fs_max_code = 0U;
+volatile float32_t adc_cal_source_avg_mv = 0.0f;
+volatile float32_t adc_cal_fs_avg_mv = 0.0f;
+volatile float32_t adc_cal_source_vpp_mv = 0.0f;
+volatile float32_t adc_cal_fs_vpp_mv = 0.0f;
 
 //
 // Function to configure I2C A in FIFO mode.

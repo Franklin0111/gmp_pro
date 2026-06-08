@@ -27,8 +27,58 @@ extern "C"
 // Input Callback
 GMP_STATIC_INLINE void ctl_input_callback(void)
 {
+    static uint32_t adc_cal_count = 0U;
+    static uint32_t adc_cal_source_sum = 0U;
+    static uint32_t adc_cal_fs_sum = 0U;
+    static uint16_t adc_cal_active = 0U;
+
     sin_source=ADC_readResult(SIN_SOURCE_RESULT_BASE,SIN_SOURCE);
     sin_fs=ADC_readResult(SIN_FS_RESULT_BASE,SIN_FS);
+
+    if (adc_cal_reset != 0U)
+    {
+        adc_cal_source_sum = 0U;
+        adc_cal_fs_sum = 0U;
+        adc_cal_source_min_code = sin_source;
+        adc_cal_source_max_code = sin_source;
+        adc_cal_fs_min_code = sin_fs;
+        adc_cal_fs_max_code = sin_fs;
+        adc_cal_count = 0U;
+        adc_cal_ready = 0U;
+        adc_cal_reset = 0U;
+        adc_cal_active = 1U;
+    }
+
+    if (adc_cal_active != 0U)
+    {
+        adc_cal_source_sum += sin_source;
+        adc_cal_fs_sum += sin_fs;
+
+        if (sin_source < adc_cal_source_min_code)
+            adc_cal_source_min_code = sin_source;
+        if (sin_source > adc_cal_source_max_code)
+            adc_cal_source_max_code = sin_source;
+        if (sin_fs < adc_cal_fs_min_code)
+            adc_cal_fs_min_code = sin_fs;
+        if (sin_fs > adc_cal_fs_max_code)
+            adc_cal_fs_max_code = sin_fs;
+
+        adc_cal_count++;
+        if (adc_cal_count >= adc_cal_window_samples)
+        {
+            adc_cal_source_avg_code = (float32_t)adc_cal_source_sum / (float32_t)adc_cal_count;
+            adc_cal_fs_avg_code = (float32_t)adc_cal_fs_sum / (float32_t)adc_cal_count;
+            adc_cal_source_avg_mv = adc_cal_source_avg_code * (adc_cal_fullscale_mv / 4096.0f);
+            adc_cal_fs_avg_mv = adc_cal_fs_avg_code * (adc_cal_fullscale_mv / 4096.0f);
+            adc_cal_source_vpp_mv = (float32_t)(adc_cal_source_max_code - adc_cal_source_min_code) *
+                                    (adc_cal_fullscale_mv / 4096.0f);
+            adc_cal_fs_vpp_mv = (float32_t)(adc_cal_fs_max_code - adc_cal_fs_min_code) *
+                                (adc_cal_fullscale_mv / 4096.0f);
+            adc_cal_ready = 1U;
+            adc_cal_active = 0U;
+        }
+    }
+
     ctl_step_adc_channel (&adc_sin_source,sin_source );
     ctl_step_adc_channel (&adc_sin_fs,sin_fs);
 }
@@ -39,7 +89,7 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
 
     EPWM_setCounterCompareValue(IRIS_EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 1500);
 
-    float32_t daca_code = dac_result * 2048.0f + 2018.0f; // offset 0 -> 0.019V; 4095 -> 3.31V ; 2048 -> 1.674V
+    float32_t daca_code = dac_result * dac_cal_scale_code + (float32_t)dac_cal_bias_code;
 
     if (daca_code < 0.0f)
     {
@@ -50,7 +100,20 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
         daca_code = 4095.0f;
     }
 
-    DAC_setShadowValue(IRIS_DACA_BASE, (uint16_t)daca_code);
+    if (dac_cal_override_enable != 0U)
+    {
+        dac_output_code = (dac_cal_override_code <= 4095U) ? dac_cal_override_code : 4095U;
+    }
+    else
+    {
+        dac_output_code = (uint16_t)daca_code;
+    }
+
+    dac_output_estimated_mv = dac_cal_zero_mv +
+                              (float32_t)dac_output_code *
+                              ((dac_cal_fullscale_mv - dac_cal_zero_mv) / 4095.0f);
+
+    DAC_setShadowValue(IRIS_DACA_BASE, dac_output_code);
     DAC_setShadowValue(IRIS_DACB_BASE, iuvw.control_port.value.dat[phase_C] * 2048 + 2048);
 
 }

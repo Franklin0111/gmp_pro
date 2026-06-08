@@ -61,10 +61,15 @@ extern volatile uint16_t capsource_ready;
 extern volatile uint16_t capps_ready;
 
 extern int32_t ecap_offset_count;
+extern volatile int32_t ecap_raw_delta_count;
+extern volatile float32_t ecap_raw_phase_deg;
+extern volatile float32_t ecap_raw_delta_avg;
+extern volatile float32_t ecap_raw_phase_avg_deg;
 extern int32_t phase_delta_count;
 extern uint32_t phase_period_count;
 extern float phase_deg;
 extern uint16_t phase_display_deg;
+extern uint16_t phase_display_deg_x10;
 extern uint16_t phase_alarm_enable;
 extern uint16_t phase_alarm_state;
 
@@ -80,6 +85,38 @@ extern ctrl_gt adc_product_raw;
 extern ctrl_gt adc_product_dc;
 extern volatile uint16_t adc_product_output_mv;
 extern ctl_filter_IIR1_t adc_product_lpf;
+
+// ADC/DAC calibration
+extern volatile uint16_t dac_cal_bias_code;
+extern volatile float32_t dac_cal_scale_code;
+extern volatile float32_t dac_cal_zero_mv;
+extern volatile float32_t dac_cal_fullscale_mv;
+extern volatile uint16_t dac_cal_override_enable;
+extern volatile uint16_t dac_cal_override_code;
+extern volatile uint16_t dac_output_code;
+extern volatile float32_t dac_output_estimated_mv;
+extern volatile float32_t adc_product_dc_code;
+extern volatile float32_t adc_product_dac_estimated_mv;
+extern volatile float32_t adc_product_output_estimated_mv;
+extern volatile float32_t vo4_cal_gain;
+extern volatile float32_t vo4_cal_offset_mv;
+
+extern volatile uint16_t adc_cal_reset;
+extern volatile uint16_t adc_cal_ready;
+extern volatile uint32_t adc_cal_window_samples;
+extern volatile float32_t adc_cal_fullscale_mv;
+extern volatile float32_t adc_cal_source_gain;
+extern volatile float32_t adc_cal_fs_gain;
+extern volatile float32_t adc_cal_source_avg_code;
+extern volatile float32_t adc_cal_fs_avg_code;
+extern volatile uint16_t adc_cal_source_min_code;
+extern volatile uint16_t adc_cal_source_max_code;
+extern volatile uint16_t adc_cal_fs_min_code;
+extern volatile uint16_t adc_cal_fs_max_code;
+extern volatile float32_t adc_cal_source_avg_mv;
+extern volatile float32_t adc_cal_fs_avg_mv;
+extern volatile float32_t adc_cal_source_vpp_mv;
+extern volatile float32_t adc_cal_fs_vpp_mv;
 
 void reset_controller(void);
 

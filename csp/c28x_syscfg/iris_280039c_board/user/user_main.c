@@ -138,6 +138,7 @@ gpio_halt user_led;
 #define PHASE_JUMP_CONFIRM_COUNT 3U
 #define PHASE_SIGNAL_TIMEOUT_MS 500U
 
+#define LED_LUT_DP_MASK 0x80U
 #define LED_LUT_BLANK 22U
 
 static uint16_t phase_signal_valid = 0U;
@@ -185,6 +186,14 @@ static uint16_t phase_abs_round_deg(float deg)
     return (uint16_t)rounded_deg;
 }
 
+static uint16_t phase_abs_round_deg_x10(float deg)
+{
+    float abs_deg = (deg >= 0.0f) ? deg : -deg;
+    uint16_t rounded_deg_x10 = (uint16_t)(abs_deg * 10.0f + 0.5f);
+
+    return (rounded_deg_x10 <= 9999U) ? rounded_deg_x10 : 9999U;
+}
+
 static float phase_abs_float(float value)
 {
     return (value >= 0.0f) ? value : -value;
@@ -209,6 +218,7 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
     static float pending_phase_deg = 0.0f;
     static uint16_t pending_phase_count = 0U;
     static uint16_t signal_timeout_ms = 0U;
+    static uint16_t raw_delta_avg_initialized = 0U;
 
     GMP_UNUSED_VAR(tsk);
 
@@ -227,11 +237,35 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
             uint32_t period_count_avg = (capsource_period_count + capps_period_count) / 2U;
             float candidate_phase_deg;
             int32_t half_period_count;
+            int32_t raw_delta_normalized;
 
             phase_period_count = (phase_period_count * 7U + period_count_avg + 4U) / 8U;
             period_count = (int32_t)phase_period_count;
             half_period_count = period_count / 2;
-            phase_delta_count = raw_delta - ecap_offset_count;
+            raw_delta_normalized = raw_delta;
+
+            while (raw_delta_normalized > half_period_count)
+            {
+                raw_delta_normalized -= period_count;
+            }
+            while (raw_delta_normalized < -half_period_count)
+            {
+                raw_delta_normalized += period_count;
+            }
+
+            ecap_raw_delta_count = raw_delta_normalized;
+            ecap_raw_phase_deg = ((float)ecap_raw_delta_count / (float)period_count) * 360.0f;
+            if (raw_delta_avg_initialized == 0U)
+            {
+                ecap_raw_delta_avg = (float)ecap_raw_delta_count;
+                raw_delta_avg_initialized = 1U;
+            }
+            else
+            {
+                ecap_raw_delta_avg += ((float)ecap_raw_delta_count - ecap_raw_delta_avg) / 32.0f;
+            }
+            ecap_raw_phase_avg_deg = (ecap_raw_delta_avg / (float)period_count) * 360.0f;
+            phase_delta_count = raw_delta_normalized - ecap_offset_count;
 
             while (phase_delta_count > half_period_count)
             {
@@ -266,6 +300,7 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
             }
 
             phase_display_deg = phase_abs_round_deg(phase_deg);
+            phase_display_deg_x10 = phase_abs_round_deg_x10(phase_deg);
             phase_signal_valid = 1U;
             signal_timeout_ms = 0U;
         }
@@ -321,22 +356,45 @@ static void phase_display_blank(ht16k33_dev_t* dev)
                              led_lut[LED_LUT_BLANK], dc_ch5, dc_ch6, dc_ch7, dc_ch8);
 }
 
-static void phase_display_value(ht16k33_dev_t* dev, uint16_t deg)
+static void phase_display_value(ht16k33_dev_t* dev, uint16_t deg_x10)
 {
+    uint16_t phase_ch1 = led_lut[LED_LUT_BLANK];
+    uint16_t phase_ch2;
+    uint16_t phase_ch3;
+    uint16_t phase_ch4 = led_lut[LED_LUT_BLANK];
     uint16_t dc_ch5;
     uint16_t dc_ch6;
     uint16_t dc_ch7;
     uint16_t dc_ch8;
 
-    if (deg > 999U)
+    if (deg_x10 > 9999U)
     {
-        deg = 999U;
+        deg_x10 = 9999U;
+    }
+
+    if (deg_x10 < 1000U)
+    {
+        if (deg_x10 >= 100U)
+        {
+            phase_ch1 = led_lut[deg_x10 / 100U];
+        }
+
+        phase_ch2 = (uint16_t)(led_lut[(deg_x10 / 10U) % 10U] | LED_LUT_DP_MASK);
+        phase_ch3 = led_lut[deg_x10 % 10U];
+    }
+    else
+    {
+        uint16_t deg = (deg_x10 + 5U) / 10U;
+
+        phase_ch1 = led_lut[(deg / 100U) % 10U];
+        phase_ch2 = led_lut[(deg / 10U) % 10U];
+        phase_ch3 = led_lut[deg % 10U];
     }
 
     adc_product_display_segments(&dc_ch5, &dc_ch6, &dc_ch7, &dc_ch8);
 
-    update_led_content_8byte(dev, led_lut[deg / 100U], led_lut[(deg / 10U) % 10U], led_lut[deg % 10U],
-                             led_lut[LED_LUT_BLANK], dc_ch5, dc_ch6, dc_ch7, dc_ch8);
+    update_led_content_8byte(dev, phase_ch1, phase_ch2, phase_ch3, phase_ch4,
+                             dc_ch5, dc_ch6, dc_ch7, dc_ch8);
 }
 
 gmp_task_status_t tsk_phase_display(gmp_task_t* tsk)
@@ -355,7 +413,7 @@ gmp_task_status_t tsk_phase_display(gmp_task_t* tsk)
 
         if (blink_state)
         {
-            phase_display_value(dev, phase_display_deg);
+            phase_display_value(dev, phase_display_deg_x10);
         }
         else
         {
@@ -365,7 +423,7 @@ gmp_task_status_t tsk_phase_display(gmp_task_t* tsk)
     else
     {
         blink_state = 0;
-        phase_display_value(dev, phase_display_deg);
+        phase_display_value(dev, phase_display_deg_x10);
     }
 
     return GMP_TASK_DONE;
