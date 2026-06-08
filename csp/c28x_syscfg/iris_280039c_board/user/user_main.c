@@ -131,6 +131,12 @@ gpio_halt user_led;
 #define PHASE_ALARM_LOWER 1U
 #define PHASE_ALARM_UPPER 2U
 
+#define PHASE_PERIOD_TOLERANCE_PERCENT 15U
+#define PHASE_CHANNEL_TOLERANCE_PERCENT 10U
+#define PHASE_JUMP_LIMIT_DEG 10.0f
+#define PHASE_JUMP_CONFIRM_TOLERANCE_DEG 3.0f
+#define PHASE_JUMP_CONFIRM_COUNT 3U
+
 #define LED_LUT_MINUS 20U
 #define LED_LUT_DP_MASK 0x80U
 #define LED_LUT_BLANK 22U
@@ -178,29 +184,47 @@ static uint16_t phase_abs_round_deg(float deg)
     return (uint16_t)rounded_deg;
 }
 
+static float phase_abs_float(float value)
+{
+    return (value >= 0.0f) ? value : -value;
+}
+
+static uint16_t phase_periods_are_valid(uint32_t source_period, uint32_t fs_period)
+{
+    uint32_t reference = phase_period_count;
+    uint32_t period_min = reference * (100U - PHASE_PERIOD_TOLERANCE_PERCENT) / 100U;
+    uint32_t period_max = reference * (100U + PHASE_PERIOD_TOLERANCE_PERCENT) / 100U;
+    uint32_t channel_difference = (source_period >= fs_period) ?
+                                  (source_period - fs_period) : (fs_period - source_period);
+    uint32_t channel_tolerance = reference * PHASE_CHANNEL_TOLERANCE_PERCENT / 100U;
+
+    return (source_period >= period_min) && (source_period <= period_max) &&
+           (fs_period >= period_min) && (fs_period <= period_max) &&
+           (channel_difference <= channel_tolerance);
+}
+
 gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
 {
+    static float pending_phase_deg = 0.0f;
+    static uint16_t pending_phase_count = 0U;
+
     GMP_UNUSED_VAR(tsk);
 
     if (capsource_ready && capps_ready)
     {
         int32_t raw_delta = (int32_t)(capps_count - capsource_count);
-        uint32_t period_count_avg = 0U;
-        int32_t period_count;
+        int32_t period_count = (int32_t)phase_period_count;
 
-        if ((capsource_period_count > 0U) && (capps_period_count > 0U))
+        if (phase_periods_are_valid(capsource_period_count, capps_period_count))
         {
-            period_count_avg = (capsource_period_count + capps_period_count) / 2U;
-            phase_period_count = period_count_avg;
-        }
+            uint32_t period_count_avg = (capsource_period_count + capps_period_count) / 2U;
+            float candidate_phase_deg;
+            int32_t half_period_count;
 
-        period_count = (int32_t)phase_period_count;
-
-        phase_delta_count = raw_delta - ecap_offset_count;
-
-        if (period_count > 0)
-        {
-            int32_t half_period_count = period_count / 2;
+            phase_period_count = (phase_period_count * 7U + period_count_avg + 4U) / 8U;
+            period_count = (int32_t)phase_period_count;
+            half_period_count = period_count / 2;
+            phase_delta_count = raw_delta - ecap_offset_count;
 
             while (phase_delta_count > half_period_count)
             {
@@ -211,7 +235,29 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
                 phase_delta_count += period_count;
             }
 
-            phase_deg = ((float)phase_delta_count / (float)period_count) * 360.0f;
+            candidate_phase_deg = ((float)phase_delta_count / (float)period_count) * 360.0f;
+
+            if (phase_abs_float(candidate_phase_deg - phase_deg) <= PHASE_JUMP_LIMIT_DEG)
+            {
+                phase_deg = candidate_phase_deg;
+                pending_phase_count = 0U;
+            }
+            else if (phase_abs_float(candidate_phase_deg - pending_phase_deg) <=
+                     PHASE_JUMP_CONFIRM_TOLERANCE_DEG)
+            {
+                pending_phase_count++;
+                if (pending_phase_count >= PHASE_JUMP_CONFIRM_COUNT)
+                {
+                    phase_deg = candidate_phase_deg;
+                    pending_phase_count = 0U;
+                }
+            }
+            else
+            {
+                pending_phase_deg = candidate_phase_deg;
+                pending_phase_count = 1U;
+            }
+
             phase_display_deg = phase_abs_round_deg(phase_deg);
         }
 
