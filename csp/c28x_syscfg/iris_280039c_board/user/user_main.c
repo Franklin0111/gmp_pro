@@ -138,8 +138,6 @@ gpio_halt user_led;
 #define PHASE_JUMP_CONFIRM_COUNT 3U
 #define PHASE_SIGNAL_TIMEOUT_MS 500U
 
-#define LED_LUT_MINUS 20U
-#define LED_LUT_DP_MASK 0x80U
 #define LED_LUT_BLANK 22U
 
 static uint16_t phase_signal_valid = 0U;
@@ -295,48 +293,19 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
     return GMP_TASK_DONE;
 }
 
-static uint16_t adc_product_abs_mv_x10(void)
-{
-    if (adc_product_dc_mv_x10 < 0)
-    {
-        return (uint16_t)(-adc_product_dc_mv_x10);
-    }
-
-    return (uint16_t)adc_product_dc_mv_x10;
-}
-
 static void adc_product_display_segments(uint16_t* ch5, uint16_t* ch6, uint16_t* ch7, uint16_t* ch8)
 {
-    uint16_t abs_mv_x10 = adc_product_abs_mv_x10();
-    uint16_t integer_part;
-    uint16_t tenth_part;
+    uint16_t output_mv = adc_product_output_mv;
 
-    *ch5 = led_lut[LED_LUT_BLANK];
-
-    if (adc_product_dc_mv_x10 < 0)
+    if (output_mv > 9999U)
     {
-        *ch5 = led_lut[LED_LUT_MINUS];
+        output_mv = 9999U;
     }
 
-    if (abs_mv_x10 > 999U)
-    {
-        abs_mv_x10 = 999U;
-    }
-
-    integer_part = abs_mv_x10 / 10U;
-    tenth_part = abs_mv_x10 % 10U;
-
-    if (integer_part >= 10U)
-    {
-        *ch6 = led_lut[integer_part / 10U];
-    }
-    else
-    {
-        *ch6 = led_lut[LED_LUT_BLANK];
-    }
-
-    *ch7 = (uint16_t)(led_lut[integer_part % 10U] | LED_LUT_DP_MASK);
-    *ch8 = led_lut[tenth_part];
+    *ch5 = led_lut[output_mv / 1000U];
+    *ch6 = led_lut[(output_mv / 100U) % 10U];
+    *ch7 = led_lut[(output_mv / 10U) % 10U];
+    *ch8 = led_lut[output_mv % 10U];
 }
 
 static void phase_display_blank(ht16k33_dev_t* dev)

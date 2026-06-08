@@ -40,11 +40,15 @@ void clear_all_controllers();
 //=================================================================================================
 // controller process
 
+#define ADC_PRODUCT_GAIN       50.0f
+#define DAC_OUTPUT_BIAS_MV   1650.0f
+#define DAC_OUTPUT_SCALE_MV  1650.0f
+
 
 // periodic callback function things.
 GMP_STATIC_INLINE void ctl_dispatch(void)
 {
-    float32_t dc_mv_x10;
+    float32_t output_dc_mv;
 
     ctrl_gt sin_source_ac =
     ctl_step_filter_iir1(&sin_source_hpf, adc_sin_source.control_port.value);
@@ -55,30 +59,22 @@ GMP_STATIC_INLINE void ctl_dispatch(void)
     adc_product_raw = sin_source_ac * sin_fs_ac;
     adc_product_dc = ctl_step_filter_iir1(&adc_product_lpf, adc_product_raw);
 
-    dc_mv_x10 = adc_product_dc * 3.3f * 3.3f * 10000.0f;
-    if (dc_mv_x10 >= 0.0f)
+    output_dc_mv = DAC_OUTPUT_BIAS_MV + adc_product_dc * ADC_PRODUCT_GAIN * DAC_OUTPUT_SCALE_MV;
+
+    if (output_dc_mv > 3300.0f)
     {
-        dc_mv_x10 += 0.5f;
+        adc_product_output_mv = 3300U;
+    }
+    else if (output_dc_mv < 0.0f)
+    {
+        adc_product_output_mv = 0U;
     }
     else
     {
-        dc_mv_x10 -= 0.5f;
+        adc_product_output_mv = (uint16_t)(output_dc_mv + 0.5f);
     }
 
-    if (dc_mv_x10 > 999.0f)
-    {
-        adc_product_dc_mv_x10 = 999;
-    }
-    else if (dc_mv_x10 < -999.0f)
-    {
-        adc_product_dc_mv_x10 = -999;
-    }
-    else
-    {
-        adc_product_dc_mv_x10 = (int16_t)dc_mv_x10;
-    }
-
-    dac_result=50.0f*(sin_source_ac * sin_fs_ac);
+    dac_result = ADC_PRODUCT_GAIN * adc_product_raw;
 }
 
 #ifdef __cplusplus

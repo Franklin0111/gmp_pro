@@ -72,7 +72,7 @@ ctl_filter_IIR1_t sin_source_hpf;
 ctl_filter_IIR1_t sin_fs_hpf;
 ctrl_gt adc_product_raw;
 ctrl_gt adc_product_dc;
-volatile int16_t adc_product_dc_mv_x10 = 0;
+volatile uint16_t adc_product_output_mv = 1650U;
 ctl_filter_IIR1_t adc_product_lpf;
 
 //
