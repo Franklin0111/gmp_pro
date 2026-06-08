@@ -1749,7 +1749,7 @@ void IRIS_GPIO5_init(){
 }
 void IRIS_GPIO6_init(){
 	GPIO_setPadConfig(IRIS_GPIO6, GPIO_PIN_TYPE_STD);
-	GPIO_setQualificationMode(IRIS_GPIO6, GPIO_QUAL_SYNC);
+	GPIO_setQualificationMode(IRIS_GPIO6, GPIO_QUAL_6SAMPLE);
 	GPIO_setDirectionMode(IRIS_GPIO6, GPIO_DIR_MODE_IN);
 	GPIO_setControllerCore(IRIS_GPIO6, GPIO_CORE_CPU1);
 }
@@ -1767,7 +1767,7 @@ void IRIS_LED2_init(){
 }
 void IRIS_GPIO_SPI_RST_init(){
 	GPIO_setPadConfig(IRIS_GPIO_SPI_RST, GPIO_PIN_TYPE_STD);
-	GPIO_setQualificationMode(IRIS_GPIO_SPI_RST, GPIO_QUAL_SYNC);
+	GPIO_setQualificationMode(IRIS_GPIO_SPI_RST, GPIO_QUAL_6SAMPLE);
 	GPIO_setDirectionMode(IRIS_GPIO_SPI_RST, GPIO_DIR_MODE_IN);
 	GPIO_setControllerCore(IRIS_GPIO_SPI_RST, GPIO_CORE_CPU1);
 }

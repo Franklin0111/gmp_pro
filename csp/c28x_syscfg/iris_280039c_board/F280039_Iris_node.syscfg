@@ -557,6 +557,7 @@ gpio5.$name           = "IRIS_GPIO5";
 gpio5.gpioPin.$assign = "GPIO34";
 
 gpio6.$name           = "IRIS_GPIO6";
+gpio6.qualMode        = "GPIO_QUAL_6SAMPLE";
 gpio6.gpioPin.$assign = "GPIO47";
 
 gpio7.$name           = "IRIS_LED1";
@@ -568,7 +569,7 @@ gpio8.direction       = "GPIO_DIR_MODE_OUT";
 gpio8.gpioPin.$assign = "GPIO59";
 
 gpio9.$name           = "IRIS_GPIO_SPI_RST";
-gpio9.direction       = "GPIO_DIR_MODE_IN";
+gpio9.qualMode        = "GPIO_QUAL_6SAMPLE";
 gpio9.gpioPin.$assign = "GPIO55";
 
 i2c1.$name                  = "IRIS_IIC";
