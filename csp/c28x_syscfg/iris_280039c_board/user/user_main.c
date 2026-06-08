@@ -136,10 +136,13 @@ gpio_halt user_led;
 #define PHASE_JUMP_LIMIT_DEG 10.0f
 #define PHASE_JUMP_CONFIRM_TOLERANCE_DEG 3.0f
 #define PHASE_JUMP_CONFIRM_COUNT 3U
+#define PHASE_SIGNAL_TIMEOUT_MS 500U
 
 #define LED_LUT_MINUS 20U
 #define LED_LUT_DP_MASK 0x80U
 #define LED_LUT_BLANK 22U
+
+static uint16_t phase_signal_valid = 0U;
 
 gmp_task_status_t tsk_blink(gmp_task_t* tsk)
 {
@@ -207,8 +210,14 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
 {
     static float pending_phase_deg = 0.0f;
     static uint16_t pending_phase_count = 0U;
+    static uint16_t signal_timeout_ms = 0U;
 
     GMP_UNUSED_VAR(tsk);
+
+    if (signal_timeout_ms < PHASE_SIGNAL_TIMEOUT_MS)
+    {
+        signal_timeout_ms++;
+    }
 
     if (capsource_ready && capps_ready)
     {
@@ -259,6 +268,8 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
             }
 
             phase_display_deg = phase_abs_round_deg(phase_deg);
+            phase_signal_valid = 1U;
+            signal_timeout_ms = 0U;
         }
 
         capsource_ready = 0;
@@ -266,6 +277,19 @@ gmp_task_status_t tsk_phase_update(gmp_task_t* tsk)
 
         ECAP_reArm(capsource_BASE);
         ECAP_reArm(capps_BASE);
+    }
+
+    if (signal_timeout_ms >= PHASE_SIGNAL_TIMEOUT_MS)
+    {
+        phase_signal_valid = 0U;
+        phase_alarm_state = PHASE_ALARM_NONE;
+        pending_phase_count = 0U;
+
+        capsource_ready = 0U;
+        capps_ready = 0U;
+        ECAP_reArm(capsource_BASE);
+        ECAP_reArm(capps_BASE);
+        signal_timeout_ms = 0U;
     }
 
     return GMP_TASK_DONE;
@@ -351,7 +375,12 @@ gmp_task_status_t tsk_phase_display(gmp_task_t* tsk)
     ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
     static uint16_t blink_state = 0;
 
-    if (phase_alarm_state != PHASE_ALARM_NONE)
+    if (phase_signal_valid == 0U)
+    {
+        blink_state = 0U;
+        phase_display_blank(dev);
+    }
+    else if (phase_alarm_state != PHASE_ALARM_NONE)
     {
         blink_state = (uint16_t)!blink_state;
 
@@ -381,7 +410,7 @@ gmp_task_status_t tsk_phase_alarm(gmp_task_t* tsk)
     static uint16_t beep_state = 0;
     static uint16_t last_alarm_state = PHASE_ALARM_NONE;
 
-    if (phase_alarm_enable == 0U)
+    if ((phase_alarm_enable == 0U) || (phase_signal_valid == 0U))
     {
         phase_alarm_state = PHASE_ALARM_NONE;
     }

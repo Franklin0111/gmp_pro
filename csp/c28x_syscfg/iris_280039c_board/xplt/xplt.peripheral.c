@@ -147,6 +147,9 @@ void setup_peripheral(void)
     ctl_init_adc_channel(&adc_sin_source, 1.0, 0.0, 12, 24);
     ctl_init_adc_channel(&adc_sin_fs, 1.0, 0.0, 12, 24);
 
+    GPIO_setQualificationPeriod(IRIS_GPIO6, 20U);
+    GPIO_setQualificationPeriod(IRIS_GPIO_SPI_RST, 20U);
+
     ECAP_stopCounter(capsource_BASE);
     ECAP_stopCounter(capps_BASE);
 
