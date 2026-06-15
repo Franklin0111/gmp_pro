@@ -47,7 +47,7 @@ volatile uint32_t capps_period_count = 0;
 volatile uint16_t capsource_ready = 0;
 volatile uint16_t capps_ready = 0;
 
-int32_t ecap_offset_count = 763;         //修改ecp固定偏置！！！！！，调试时修改
+int32_t ecap_offset_count = 0;         //修改ecp固定偏置！！！！！，调试时修改
 volatile int32_t ecap_raw_delta_count = 0;
 volatile float32_t ecap_raw_phase_deg = 0.0f;
 volatile float32_t ecap_raw_delta_avg = 0.0f;

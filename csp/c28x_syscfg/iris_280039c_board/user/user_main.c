@@ -441,11 +441,11 @@ gmp_task_status_t tsk_phase_alarm(gmp_task_t* tsk)
     {
         phase_alarm_state = PHASE_ALARM_NONE;
     }
-    else if (phase_display_deg <= 3U)
+    else if (phase_display_deg_x10 <= 30U)
     {
         phase_alarm_state = PHASE_ALARM_LOWER;
     }
-    else if (phase_display_deg >= 97U)
+    else if (phase_display_deg_x10 >= 970U)
     {
         phase_alarm_state = PHASE_ALARM_UPPER;
     }
