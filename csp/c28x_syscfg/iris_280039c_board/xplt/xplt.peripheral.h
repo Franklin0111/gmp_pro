@@ -48,6 +48,45 @@ extern adc_gt udc_src;
 extern ptr_adc_channel_t idc;
 extern adc_gt idc_src;
 
+// programmable power supply state
+typedef enum
+{
+    PSU_STATE_OFF = 0,
+    PSU_STATE_ON,
+    PSU_STATE_FAULT
+} psu_state_t;
+
+typedef enum
+{
+    PSU_MODE_CV = 0,
+    PSU_MODE_CC,
+    PSU_MODE_AUTO
+} psu_mode_t;
+
+typedef enum
+{
+    PSU_EDIT_VOLTAGE = 0,
+    PSU_EDIT_CURRENT,
+    PSU_EDIT_MODE
+} psu_edit_target_t;
+
+typedef enum
+{
+    PSU_FAULT_NONE = 0,
+    PSU_FAULT_OVERVOLTAGE,
+    PSU_FAULT_OVERCURRENT
+} psu_fault_t;
+
+extern volatile psu_state_t psu_state;
+extern volatile psu_mode_t psu_mode;
+extern volatile psu_edit_target_t psu_edit_target;
+extern volatile psu_fault_t psu_fault;
+
+extern volatile float32_t psu_v_set;
+extern volatile float32_t psu_i_set;
+extern volatile float32_t psu_v_meas;
+extern volatile float32_t psu_i_meas;
+
 void reset_controller(void);
 
 uint16_t SPI_readReg(uint16_t addr);

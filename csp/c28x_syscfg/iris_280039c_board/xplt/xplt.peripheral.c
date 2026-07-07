@@ -40,6 +40,16 @@ adc_gt udc_src;
 ptr_adc_channel_t idc;
 adc_gt idc_src;
 
+volatile psu_state_t psu_state = PSU_STATE_OFF;
+volatile psu_mode_t psu_mode = PSU_MODE_AUTO;
+volatile psu_edit_target_t psu_edit_target = PSU_EDIT_VOLTAGE;
+volatile psu_fault_t psu_fault = PSU_FAULT_NONE;
+
+volatile float32_t psu_v_set = 5.00f;
+volatile float32_t psu_i_set = 50.0f;
+volatile float32_t psu_v_meas = 0.00f;
+volatile float32_t psu_i_meas = 0.0f;
+
 //=================================================================================================
 // peripheral setup function
 

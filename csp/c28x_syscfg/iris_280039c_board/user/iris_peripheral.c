@@ -6,6 +6,7 @@
 #include "ctl_main.h"
 #include "user_main.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 // peripheral
 #include <core/dev/display/ht16k33.h>
@@ -130,17 +131,133 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
     return GMP_TASK_DONE;
 }
 
+static const char* psu_state_text(psu_state_t state)
+{
+    switch (state)
+    {
+    case PSU_STATE_ON:
+        return "ON";
+    case PSU_STATE_FAULT:
+        return "FAULT";
+    case PSU_STATE_OFF:
+    default:
+        return "OFF";
+    }
+}
+
+static const char* psu_mode_text(psu_mode_t mode)
+{
+    switch (mode)
+    {
+    case PSU_MODE_CV:
+        return "CV";
+    case PSU_MODE_CC:
+        return "CC";
+    case PSU_MODE_AUTO:
+    default:
+        return "AUTO";
+    }
+}
+
+static const char* psu_edit_text(psu_edit_target_t target)
+{
+    switch (target)
+    {
+    case PSU_EDIT_CURRENT:
+        return "I";
+    case PSU_EDIT_MODE:
+        return "M";
+    case PSU_EDIT_VOLTAGE:
+    default:
+        return "V";
+    }
+}
+
+static const char* psu_fault_text(psu_fault_t fault)
+{
+    switch (fault)
+    {
+    case PSU_FAULT_OVERVOLTAGE:
+        return "OV";
+    case PSU_FAULT_OVERCURRENT:
+        return "OC";
+    case PSU_FAULT_NONE:
+    default:
+        return "NONE";
+    }
+}
+
+static uint16_t psu_to_scaled_u16(float32_t value, float32_t scale, uint16_t max_value)
+{
+    uint32_t scaled;
+
+    if (value < 0.0f)
+        value = 0.0f;
+
+    scaled = (uint32_t)(value * scale + 0.5f);
+
+    if (scaled > max_value)
+        scaled = max_value;
+
+    return (uint16_t)scaled;
+}
+
+static void psu_format_voltage(char* str, float32_t voltage)
+{
+    uint16_t centivolt = psu_to_scaled_u16(voltage, 100.0f, 9999U);
+    sprintf(str, "%02u.%02u", centivolt / 100U, centivolt % 100U);
+}
+
+static void psu_format_current(char* str, float32_t current_ma)
+{
+    uint16_t deci_ma = psu_to_scaled_u16(current_ma, 10.0f, 9999U);
+    sprintf(str, "%03u.%01u", deci_ma / 10U, deci_ma % 10U);
+}
+
+static void psu_oled_show_line(uint8_t y_page, const char* text)
+{
+    char line[17];
+    uint16_t i;
+
+    for (i = 0; (i < 16U) && (text[i] != '\0'); ++i)
+        line[i] = text[i];
+
+    for (; i < 16U; ++i)
+        line[i] = ' ';
+
+    line[16] = '\0';
+    oled_show_str(0, y_page, line);
+}
+
 gmp_task_status_t oled_show_task(gmp_task_t* tsk)
 {
-    static uint16_t index;
+    char line[32];
+    char v_set_str[8];
+    char i_set_str[8];
+    char v_meas_str[8];
+    char i_meas_str[8];
 
-    char output_msg[32];
+    GMP_UNUSED_VAR(tsk);
 
-    if (flag_init_cmpt == 1)
-    {
-        sprintf(output_msg, "index: %d C", index++);
-        oled_show_str(0, 2, output_msg);
-    }
+    if (flag_init_cmpt != 1U)
+        return GMP_TASK_DONE;
+
+    psu_format_voltage(v_set_str, psu_v_set);
+    psu_format_current(i_set_str, psu_i_set);
+    psu_format_voltage(v_meas_str, psu_v_meas);
+    psu_format_current(i_meas_str, psu_i_meas);
+
+    sprintf(line, "%s %s E:%s", psu_state_text(psu_state), psu_mode_text(psu_mode), psu_edit_text(psu_edit_target));
+    psu_oled_show_line(0, line);
+
+    sprintf(line, "SV%s SI%s", v_set_str, i_set_str);
+    psu_oled_show_line(2, line);
+
+    sprintf(line, "MV%s MI%s", v_meas_str, i_meas_str);
+    psu_oled_show_line(4, line);
+
+    sprintf(line, "FLT:%s", psu_fault_text(psu_fault));
+    psu_oled_show_line(6, line);
 
     return GMP_TASK_DONE;
 }
