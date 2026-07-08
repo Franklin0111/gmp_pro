@@ -67,6 +67,8 @@ typedef enum
 {
     PSU_EDIT_VOLTAGE = 0,
     PSU_EDIT_CURRENT,
+    PSU_EDIT_OV_LIMIT,
+    PSU_EDIT_OC_LIMIT,
     PSU_EDIT_MODE
 } psu_edit_target_t;
 
@@ -84,6 +86,8 @@ extern volatile psu_fault_t psu_fault;
 
 extern volatile float32_t psu_v_set;
 extern volatile float32_t psu_i_set;
+extern volatile float32_t psu_ov_limit;
+extern volatile float32_t psu_oc_limit;
 extern volatile float32_t psu_v_meas;
 extern volatile float32_t psu_i_meas;
 

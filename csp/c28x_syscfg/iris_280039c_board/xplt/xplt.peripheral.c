@@ -47,6 +47,8 @@ volatile psu_fault_t psu_fault = PSU_FAULT_NONE;
 
 volatile float32_t psu_v_set = 5.00f;
 volatile float32_t psu_i_set = 50.0f;
+volatile float32_t psu_ov_limit = 10.50f;
+volatile float32_t psu_oc_limit = 105.0f;
 volatile float32_t psu_v_meas = 0.00f;
 volatile float32_t psu_i_meas = 0.0f;
 

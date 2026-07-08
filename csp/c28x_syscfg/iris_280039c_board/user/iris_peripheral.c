@@ -124,9 +124,11 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 
 #define PSU_V_SET_MAX 10.0f
 #define PSU_I_SET_MAX 100.0f
+#define PSU_OV_LIMIT_MAX 10.5f
+#define PSU_OC_LIMIT_MAX 105.0f
 #define PSU_INPUT_BUF_SIZE 8U
 #define PSU_KEY_RELEASE_COUNT 20U
-#define PSU_OLED_LINE_COUNT 4U
+#define PSU_OLED_LINE_COUNT 5U
 #define PSU_OLED_LINE_LEN 16U
 #define PSU_OLED_FORCE_REDRAW_COUNT 10U
 #define PSU_EQEP_POSITION_MAX 10000L
@@ -181,10 +183,10 @@ static uint16_t psu_input_frac_len(void)
 
 static uint16_t psu_input_max_frac_len(void)
 {
-    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+    if ((psu_edit_target == PSU_EDIT_VOLTAGE) || (psu_edit_target == PSU_EDIT_OV_LIMIT))
         return 2U;
 
-    if (psu_edit_target == PSU_EDIT_CURRENT)
+    if ((psu_edit_target == PSU_EDIT_CURRENT) || (psu_edit_target == PSU_EDIT_OC_LIMIT))
         return 1U;
 
     return 0U;
@@ -283,6 +285,10 @@ static void psu_input_confirm(void)
         psu_v_set = psu_limit_value(value, PSU_V_SET_MAX);
     else if (psu_edit_target == PSU_EDIT_CURRENT)
         psu_i_set = psu_limit_value(value, PSU_I_SET_MAX);
+    else if (psu_edit_target == PSU_EDIT_OV_LIMIT)
+        psu_ov_limit = psu_limit_value(value, PSU_OV_LIMIT_MAX);
+    else if (psu_edit_target == PSU_EDIT_OC_LIMIT)
+        psu_oc_limit = psu_limit_value(value, PSU_OC_LIMIT_MAX);
 
     psu_input_clear();
 }
@@ -291,7 +297,7 @@ static const char* psu_input_unit_text(void)
 {
     uint16_t frac_len = psu_input_frac_len();
 
-    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+    if ((psu_edit_target == PSU_EDIT_VOLTAGE) || (psu_edit_target == PSU_EDIT_OV_LIMIT))
     {
         if (psu_input_has_dot && (frac_len >= 2U))
             return "0.01V";
@@ -302,7 +308,7 @@ static const char* psu_input_unit_text(void)
         return "1V";
     }
 
-    if (psu_edit_target == PSU_EDIT_CURRENT)
+    if ((psu_edit_target == PSU_EDIT_CURRENT) || (psu_edit_target == PSU_EDIT_OC_LIMIT))
     {
         if (psu_input_has_dot)
             return "0.1mA";
@@ -401,12 +407,18 @@ static void psu_handle_key(uint16_t key_id)
 
     case IRIS_SW16_KEY_ID:
         psu_input_clear();
-        psu_edit_target = PSU_EDIT_VOLTAGE;
+        if (psu_edit_target == PSU_EDIT_VOLTAGE)
+            psu_edit_target = PSU_EDIT_CURRENT;
+        else
+            psu_edit_target = PSU_EDIT_VOLTAGE;
         break;
 
     case IRIS_SW17_KEY_ID:
         psu_input_clear();
-        psu_edit_target = PSU_EDIT_CURRENT;
+        if (psu_edit_target == PSU_EDIT_OV_LIMIT)
+            psu_edit_target = PSU_EDIT_OC_LIMIT;
+        else
+            psu_edit_target = PSU_EDIT_OV_LIMIT;
         break;
 
     case IRIS_SW18_KEY_ID:
@@ -478,10 +490,20 @@ static void psu_apply_eqep_steps(int16_t steps)
         psu_input_clear();
         psu_v_set = psu_limit_value(psu_v_set + (float32_t)steps * PSU_EQEP_V_STEP, PSU_V_SET_MAX);
     }
+    else if (psu_edit_target == PSU_EDIT_OV_LIMIT)
+    {
+        psu_input_clear();
+        psu_ov_limit = psu_limit_value(psu_ov_limit + (float32_t)steps * PSU_EQEP_V_STEP, PSU_OV_LIMIT_MAX);
+    }
     else if (psu_edit_target == PSU_EDIT_CURRENT)
     {
         psu_input_clear();
         psu_i_set = psu_limit_value(psu_i_set + (float32_t)steps * PSU_EQEP_I_STEP, PSU_I_SET_MAX);
+    }
+    else if (psu_edit_target == PSU_EDIT_OC_LIMIT)
+    {
+        psu_input_clear();
+        psu_oc_limit = psu_limit_value(psu_oc_limit + (float32_t)steps * PSU_EQEP_I_STEP, PSU_OC_LIMIT_MAX);
     }
 }
 
@@ -591,6 +613,10 @@ static const char* psu_edit_text(psu_edit_target_t target)
     {
     case PSU_EDIT_CURRENT:
         return "I";
+    case PSU_EDIT_OV_LIMIT:
+        return "OV";
+    case PSU_EDIT_OC_LIMIT:
+        return "OC";
     case PSU_EDIT_MODE:
         return "M";
     case PSU_EDIT_VOLTAGE:
@@ -610,6 +636,22 @@ static const char* psu_fault_text(psu_fault_t fault)
     case PSU_FAULT_NONE:
     default:
         return "NONE";
+    }
+}
+
+static const char* psu_input_label_text(void)
+{
+    switch (psu_edit_target)
+    {
+    case PSU_EDIT_CURRENT:
+        return "SI";
+    case PSU_EDIT_OV_LIMIT:
+        return "OV";
+    case PSU_EDIT_OC_LIMIT:
+        return "OC";
+    case PSU_EDIT_VOLTAGE:
+    default:
+        return "SV";
     }
 }
 
@@ -642,7 +684,7 @@ static void psu_format_current(char* str, float32_t current_ma)
 
 static uint16_t psu_oled_line_index(uint8_t y_page)
 {
-    return (uint16_t)(y_page / 2U);
+    return (uint16_t)y_page;
 }
 
 static char psu_oled_line_cache[PSU_OLED_LINE_COUNT][PSU_OLED_LINE_LEN + 1U];
@@ -703,6 +745,8 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
     char i_set_str[8];
     char v_meas_str[8];
     char i_meas_str[8];
+    char ov_limit_str[8];
+    char oc_limit_str[8];
     static uint16_t redraw_counter = 0;
 
     GMP_UNUSED_VAR(tsk);
@@ -722,23 +766,31 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
     psu_format_current(i_set_str, psu_i_set);
     psu_format_voltage(v_meas_str, psu_v_meas);
     psu_format_current(i_meas_str, psu_i_meas);
+    psu_format_voltage(ov_limit_str, psu_ov_limit);
+    psu_format_current(oc_limit_str, psu_oc_limit);
 
     sprintf(line, "%s %s E:%s", psu_state_text(psu_state), psu_mode_text(psu_mode), psu_edit_text(psu_edit_target));
     psu_oled_show_line(0, line);
 
-    if ((psu_input_active != 0U) && (psu_edit_target == PSU_EDIT_VOLTAGE))
-        sprintf(line, "IN V:%s %s", psu_input_buf, psu_input_unit_text());
-    else if ((psu_input_active != 0U) && (psu_edit_target == PSU_EDIT_CURRENT))
-        sprintf(line, "IN I:%s %s", psu_input_buf, psu_input_unit_text());
+    if (psu_input_active != 0U)
+        sprintf(line, "%s:%s %s", psu_input_label_text(), psu_input_buf, psu_input_unit_text());
     else
         sprintf(line, "SV%s SI%s", v_set_str, i_set_str);
+    psu_oled_show_line(1, line);
+
+    if (psu_mode == PSU_MODE_CV)
+        sprintf(line, "OC LIM %smA", oc_limit_str);
+    else if (psu_mode == PSU_MODE_CC)
+        sprintf(line, "OV LIM %sV", ov_limit_str);
+    else
+        sprintf(line, "OV%s OC%s", ov_limit_str, oc_limit_str);
     psu_oled_show_line(2, line);
 
     sprintf(line, "MV%s MI%s", v_meas_str, i_meas_str);
-    psu_oled_show_line(4, line);
+    psu_oled_show_line(3, line);
 
     sprintf(line, "FLT:%s", psu_fault_text(psu_fault));
-    psu_oled_show_line(6, line);
+    psu_oled_show_line(4, line);
 
     psu_oled_force_redraw = 0U;
 
