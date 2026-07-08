@@ -57,6 +57,7 @@ void ctl_mainloop(void);
 
 gmp_task_status_t tsk_startup(gmp_task_t* tsk);
 gmp_task_status_t tsk_key_flush(gmp_task_t* tsk);
+gmp_task_status_t tsk_eqep_flush(gmp_task_t* tsk);
 gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk);
 gmp_task_status_t fpga_test_task(gmp_task_t* tsk);
 gmp_task_status_t oled_show_task(gmp_task_t* tsk);

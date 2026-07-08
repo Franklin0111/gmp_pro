@@ -5,6 +5,7 @@
 // user main header
 #include "ctl_main.h"
 #include "user_main.h"
+#include "board.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -128,6 +129,9 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 #define PSU_OLED_LINE_COUNT 4U
 #define PSU_OLED_LINE_LEN 16U
 #define PSU_OLED_FORCE_REDRAW_COUNT 10U
+#define PSU_EQEP_POSITION_MAX 10000L
+#define PSU_EQEP_V_STEP 0.01f
+#define PSU_EQEP_I_STEP 0.1f
 
 static char psu_input_buf[PSU_INPUT_BUF_SIZE];
 static uint16_t psu_input_len = 0;
@@ -456,6 +460,48 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
         gmp_base_print("Receive Key Message, %d\r\n", key_id);
     }
     }
+
+    return GMP_TASK_DONE;
+}
+
+static void psu_apply_eqep_steps(int16_t steps)
+{
+    if (steps == 0)
+        return;
+
+    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+    {
+        psu_input_clear();
+        psu_v_set = psu_limit_value(psu_v_set + (float32_t)steps * PSU_EQEP_V_STEP, PSU_V_SET_MAX);
+    }
+    else if (psu_edit_target == PSU_EDIT_CURRENT)
+    {
+        psu_input_clear();
+        psu_i_set = psu_limit_value(psu_i_set + (float32_t)steps * PSU_EQEP_I_STEP, PSU_I_SET_MAX);
+    }
+}
+
+gmp_task_status_t tsk_eqep_flush(gmp_task_t* tsk)
+{
+    static int32_t last_position = 0;
+    int32_t position;
+    int32_t delta;
+
+    GMP_UNUSED_VAR(tsk);
+
+    if (flag_init_cmpt != 1U)
+        return GMP_TASK_DONE;
+
+    position = (int32_t)EQEP_getPosition(IRIS_EQEP1_BASE);
+    delta = position - last_position;
+    last_position = position;
+
+    if (delta > (PSU_EQEP_POSITION_MAX / 2L))
+        delta -= (PSU_EQEP_POSITION_MAX + 1L);
+    else if (delta < -(PSU_EQEP_POSITION_MAX / 2L))
+        delta += (PSU_EQEP_POSITION_MAX + 1L);
+
+    psu_apply_eqep_steps((int16_t)delta);
 
     return GMP_TASK_DONE;
 }

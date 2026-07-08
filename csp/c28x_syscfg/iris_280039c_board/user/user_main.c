@@ -159,6 +159,7 @@ gmp_task_t tasks[] = {
     // name,     task,      period(ms),  init_phase, is_enabled, pParam
     {"dl_online", tsk_dl_debug_device, 2, 0, 1, NULL},
     {"flush_key", tsk_key_flush, 20, 10, 0, (void*)&ht16k33},
+    {"flush_eqep", tsk_eqep_flush, 20, 20, 1, NULL},
     {"oled_show", oled_show_task, 1000, 500, 1, NULL},
     {"flush_led", tsk_LED_flush, 500, 200, 0, (void*)&ht16k33},
     {"fpga_test", fpga_test_task, 1000, 600, 1, NULL},
