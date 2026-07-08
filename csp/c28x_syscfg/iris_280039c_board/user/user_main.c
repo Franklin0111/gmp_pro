@@ -6,6 +6,7 @@
 // user main header
 #include "ctl_main.h"
 #include "user_main.h"
+#include <xplt.peripheral.h>
 #include <stdlib.h>
 
 #include <core/dev/mem_presp.h>
@@ -130,20 +131,27 @@ volatile uint16_t flag_init_cmpt = 0;
 
 gmp_task_status_t tsk_blink(gmp_task_t* tsk)
 {
+    static uint16_t fault_led_on = 0U;
+
     GMP_UNUSED_VAR(tsk);
 
-    gmp_base_print(TEXT_STRING("Hello World!\r\n"));
-
-    static fast_gt led_stat = 0;
-    if (led_stat == 0)
+    if (psu_state == PSU_STATE_OFF)
     {
-        led_stat = 1;
-        gmp_hal_gpio_write(user_led, 0);
+        fault_led_on = 0U;
+        GPIO_writePin(IRIS_LED1, 1U);
+        GPIO_writePin(IRIS_LED2, 1U);
+    }
+    else if (psu_state == PSU_STATE_ON)
+    {
+        fault_led_on = 0U;
+        GPIO_writePin(IRIS_LED1, 0U);
+        GPIO_writePin(IRIS_LED2, 0U);
     }
     else
     {
-        led_stat = 0;
-        gmp_hal_gpio_write(user_led, 1);
+        fault_led_on = !fault_led_on;
+        GPIO_writePin(IRIS_LED1, !fault_led_on);
+        GPIO_writePin(IRIS_LED2, !fault_led_on);
     }
 
     return GMP_TASK_DONE;
@@ -163,7 +171,7 @@ gmp_task_t tasks[] = {
     {"oled_show", oled_show_task, 1000, 500, 1, NULL},
     {"flush_led", tsk_LED_flush, 500, 200, 0, (void*)&ht16k33},
     {"fpga_test", fpga_test_task, 1000, 600, 1, NULL},
-    {"blink_led", tsk_blink, 1000, 100, 1, NULL},
+    {"blink_led", tsk_blink, 250, 100, 1, NULL},
     {"startup", tsk_startup, 250, 0, 1, NULL},
 };
 
