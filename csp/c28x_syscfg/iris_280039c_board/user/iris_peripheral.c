@@ -130,6 +130,10 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 #define PSU_OLED_LINE_LEN 16U
 #define PSU_OLED_FORCE_REDRAW_COUNT 10U
 #define PSU_EQEP_POSITION_MAX 10000L
+#define PSU_EQEP_COUNTS_PER_STEP 4L
+#define PSU_EQEP_STABLE_COUNT 2U
+#define PSU_EQEP_MIN_VALID_COUNTS 3L
+#define PSU_EQEP_MAX_VALID_COUNTS 16L
 #define PSU_EQEP_V_STEP 0.01f
 #define PSU_EQEP_I_STEP 0.1f
 
@@ -483,9 +487,14 @@ static void psu_apply_eqep_steps(int16_t steps)
 
 gmp_task_status_t tsk_eqep_flush(gmp_task_t* tsk)
 {
-    static int32_t last_position = 0;
+    static int32_t accepted_position = 0;
+    static int32_t candidate_position = 0;
+    static uint16_t stable_count = 0;
+    static uint16_t is_initialized = 0;
     int32_t position;
     int32_t delta;
+    int32_t abs_delta;
+    int32_t steps;
 
     GMP_UNUSED_VAR(tsk);
 
@@ -493,15 +502,57 @@ gmp_task_status_t tsk_eqep_flush(gmp_task_t* tsk)
         return GMP_TASK_DONE;
 
     position = (int32_t)EQEP_getPosition(IRIS_EQEP1_BASE);
-    delta = position - last_position;
-    last_position = position;
+
+    if (is_initialized == 0U)
+    {
+        accepted_position = position;
+        candidate_position = position;
+        stable_count = 0;
+        is_initialized = 1U;
+        return GMP_TASK_DONE;
+    }
+
+    if (position == candidate_position)
+    {
+        if (stable_count < PSU_EQEP_STABLE_COUNT)
+            ++stable_count;
+    }
+    else
+    {
+        candidate_position = position;
+        stable_count = 0;
+        return GMP_TASK_DONE;
+    }
+
+    if (stable_count < PSU_EQEP_STABLE_COUNT)
+        return GMP_TASK_DONE;
+
+    delta = candidate_position - accepted_position;
 
     if (delta > (PSU_EQEP_POSITION_MAX / 2L))
         delta -= (PSU_EQEP_POSITION_MAX + 1L);
     else if (delta < -(PSU_EQEP_POSITION_MAX / 2L))
         delta += (PSU_EQEP_POSITION_MAX + 1L);
 
-    psu_apply_eqep_steps((int16_t)delta);
+    abs_delta = (delta >= 0) ? delta : -delta;
+
+    if (abs_delta < PSU_EQEP_MIN_VALID_COUNTS)
+        return GMP_TASK_DONE;
+
+    if (abs_delta > PSU_EQEP_MAX_VALID_COUNTS)
+    {
+        accepted_position = candidate_position;
+        return GMP_TASK_DONE;
+    }
+
+    steps = (abs_delta + (PSU_EQEP_COUNTS_PER_STEP / 2L)) / PSU_EQEP_COUNTS_PER_STEP;
+
+    if (delta < 0)
+        steps = -steps;
+
+    accepted_position = candidate_position;
+
+    psu_apply_eqep_steps((int16_t)steps);
 
     return GMP_TASK_DONE;
 }

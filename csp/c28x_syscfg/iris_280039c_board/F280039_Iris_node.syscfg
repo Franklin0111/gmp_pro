@@ -489,6 +489,9 @@ eqep1.enableModule        = true;
 eqep1.swPositionInit      = true;
 eqep1.useInterfacePins    = ["EQEP#_A","EQEP#_B"];
 eqep1.positionCounterMode = "EQEP_POSITION_RESET_MAX_POS";
+eqep1.eqepResolution      = "EQEP_CONFIG_1X_RESOLUTION";
+eqep1.aQual.qualMode      = "GPIO_QUAL_6SAMPLE";
+eqep1.bQual.qualMode      = "GPIO_QUAL_6SAMPLE";
 
 eqep2.$name                      = "IRIS_EQEP2";
 eqep2.useCase                    = "CUSTOM";
