@@ -399,10 +399,13 @@ static void psu_handle_key(uint16_t key_id)
     case IRIS_SW14_KEY_ID:
         psu_state = PSU_STATE_ON;
         psu_fault = PSU_FAULT_NONE;
+        beep_off();
         break;
 
     case IRIS_SW15_KEY_ID:
         psu_state = PSU_STATE_OFF;
+        psu_fault = PSU_FAULT_NONE;
+        beep_off();
         break;
 
     case IRIS_SW16_KEY_ID:

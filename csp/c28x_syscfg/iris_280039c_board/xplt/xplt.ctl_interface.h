@@ -26,6 +26,9 @@ extern "C"
 #define PSU_DAC_MAX_CODE 4095.0f
 #define PSU_DAC_V_FULL_SCALE 10.0f
 #define PSU_DAC_I_FULL_SCALE 100.0f
+#define PSU_ADC_MAX_CODE 4095.0f
+#define PSU_ADC_V_FULL_SCALE 12.0f
+#define PSU_ADC_I_FULL_SCALE 120.0f
 
 GMP_STATIC_INLINE uint16_t psu_dac_norm_to_code(float32_t value)
 {
@@ -41,10 +44,47 @@ GMP_STATIC_INLINE uint16_t psu_dac_norm_to_code(float32_t value)
     return (uint16_t)code;
 }
 
+GMP_STATIC_INLINE float32_t psu_adc_code_to_value(uint16_t code, float32_t full_scale)
+{
+    if (code > 4095U)
+        code = 4095U;
+
+    return ((float32_t)code * full_scale) / PSU_ADC_MAX_CODE;
+}
+
+GMP_STATIC_INLINE void psu_trip_fault(psu_fault_t fault)
+{
+    psu_state = PSU_STATE_FAULT;
+    psu_fault = fault;
+    GPIO_writePin(IRIS_GPIO1, 1U);
+}
+
 // Input Callback
 GMP_STATIC_INLINE void ctl_input_callback(void)
 {
+    uint16_t v_code;
+    uint16_t i_code;
 
+    v_code = ADC_readResult(ADC_CH1_RESULT_BASE, ADC_CH1);
+    i_code = ADC_readResult(ADC_CH3_RESULT_BASE, ADC_CH3);
+
+    psu_v_meas = psu_adc_code_to_value(v_code, PSU_ADC_V_FULL_SCALE);
+    psu_i_meas = psu_adc_code_to_value(i_code, PSU_ADC_I_FULL_SCALE);
+
+    if (psu_state == PSU_STATE_ON)
+    {
+        if ((psu_mode == PSU_MODE_CV) && (psu_i_meas > psu_oc_limit))
+            psu_trip_fault(PSU_FAULT_OVERCURRENT);
+        else if ((psu_mode == PSU_MODE_CC) && (psu_v_meas > psu_ov_limit))
+            psu_trip_fault(PSU_FAULT_OVERVOLTAGE);
+        else if (psu_mode == PSU_MODE_AUTO)
+        {
+            if (psu_i_meas > psu_oc_limit)
+                psu_trip_fault(PSU_FAULT_OVERCURRENT);
+            else if (psu_v_meas > psu_ov_limit)
+                psu_trip_fault(PSU_FAULT_OVERVOLTAGE);
+        }
+    }
 }
 
 // Output Callback
