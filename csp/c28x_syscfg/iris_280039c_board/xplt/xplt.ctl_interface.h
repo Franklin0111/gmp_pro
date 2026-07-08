@@ -52,6 +52,8 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
 {
     float32_t v_norm;
     float32_t i_norm;
+    uint16_t relay_on;
+    static uint16_t last_relay_on = 0xFFFFU;
 
     EPWM_setCounterCompareValue(IRIS_EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 1500);
 
@@ -59,11 +61,19 @@ GMP_STATIC_INLINE void ctl_output_callback(void)
     {
         v_norm = psu_v_set / PSU_DAC_V_FULL_SCALE;
         i_norm = psu_i_set / PSU_DAC_I_FULL_SCALE;
+        relay_on = 1U;
     }
     else
     {
         v_norm = 0.0f;
         i_norm = 0.0f;
+        relay_on = 0U;
+    }
+
+    if (relay_on != last_relay_on)
+    {
+        GPIO_writePin(IRIS_GPIO6, relay_on);
+        last_relay_on = relay_on;
     }
 
     DAC_setShadowValue(IRIS_DACA_BASE, psu_dac_norm_to_code(v_norm));
