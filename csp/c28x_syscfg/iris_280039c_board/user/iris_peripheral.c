@@ -121,10 +121,52 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 #define IRIS_SW17_KEY_ID 19U
 #define IRIS_SW18_KEY_ID 20U
 
+static void psu_next_mode(void)
+{
+    if (psu_mode == PSU_MODE_CV)
+        psu_mode = PSU_MODE_CC;
+    else if (psu_mode == PSU_MODE_CC)
+        psu_mode = PSU_MODE_AUTO;
+    else
+        psu_mode = PSU_MODE_CV;
+}
+
+static void psu_handle_key(uint16_t key_id)
+{
+    switch (key_id)
+    {
+    case IRIS_SW14_KEY_ID:
+        psu_state = PSU_STATE_ON;
+        psu_fault = PSU_FAULT_NONE;
+        break;
+
+    case IRIS_SW15_KEY_ID:
+        psu_state = PSU_STATE_OFF;
+        break;
+
+    case IRIS_SW16_KEY_ID:
+        psu_edit_target = PSU_EDIT_VOLTAGE;
+        break;
+
+    case IRIS_SW17_KEY_ID:
+        psu_edit_target = PSU_EDIT_CURRENT;
+        break;
+
+    case IRIS_SW18_KEY_ID:
+        psu_edit_target = PSU_EDIT_MODE;
+        psu_next_mode();
+        break;
+
+    default:
+        break;
+    }
+}
+
 gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 {
     ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
     fast_gt key_id = 0;
+    static fast_gt last_key_id = 0;
 
     if(flag_init_cmpt)
     {
@@ -135,16 +177,21 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
     if (ret != GMP_EC_OK)
     {
         tsk->is_enabled = 0;
+        return GMP_TASK_DONE;
     }
 
-    if (key_id != 0)
+    if ((key_id != 0) && (last_key_id == 0))
     {
+        psu_handle_key((uint16_t)key_id);
+
         // response key message
         update_led_content_8byte(dev, led_lut[2], led_lut[0], led_lut[2], led_lut[6], led_lut[20], led_lut[key_id / 10],
                                  led_lut[key_id % 10], led_lut[20]);
 
         gmp_base_print("Receive Key Message, %d\r\n", key_id);
     }
+
+    last_key_id = key_id;
     }
 
     return GMP_TASK_DONE;
