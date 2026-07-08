@@ -121,6 +121,190 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 #define IRIS_SW17_KEY_ID 19U
 #define IRIS_SW18_KEY_ID 20U
 
+#define PSU_V_SET_MAX 10.0f
+#define PSU_I_SET_MAX 100.0f
+#define PSU_INPUT_BUF_SIZE 8U
+#define PSU_KEY_RELEASE_COUNT 20U
+#define PSU_OLED_LINE_COUNT 4U
+#define PSU_OLED_LINE_LEN 16U
+#define PSU_OLED_FORCE_REDRAW_COUNT 10U
+
+static char psu_input_buf[PSU_INPUT_BUF_SIZE];
+static uint16_t psu_input_len = 0;
+static uint16_t psu_input_has_dot = 0;
+static uint16_t psu_input_active = 0;
+static uint16_t psu_oled_force_redraw = 1U;
+
+static void psu_input_clear(void)
+{
+    psu_input_len = 0;
+    psu_input_has_dot = 0;
+    psu_input_active = 0;
+    psu_input_buf[0] = '\0';
+}
+
+static void psu_input_start(void)
+{
+    if (psu_input_active == 0U)
+    {
+        psu_input_len = 0;
+        psu_input_has_dot = 0;
+        psu_input_buf[0] = '\0';
+        psu_input_active = 1U;
+    }
+}
+
+static uint16_t psu_input_frac_len(void)
+{
+    uint16_t frac_len = 0;
+    uint16_t after_dot = 0;
+    uint16_t i;
+
+    for (i = 0; i < psu_input_len; ++i)
+    {
+        if (psu_input_buf[i] == '.')
+            after_dot = 1U;
+        else if (after_dot)
+            ++frac_len;
+    }
+
+    return frac_len;
+}
+
+static uint16_t psu_input_max_frac_len(void)
+{
+    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+        return 2U;
+
+    if (psu_edit_target == PSU_EDIT_CURRENT)
+        return 1U;
+
+    return 0U;
+}
+
+static void psu_input_append(char ch)
+{
+    psu_input_start();
+
+    if (psu_input_len >= (PSU_INPUT_BUF_SIZE - 1U))
+        return;
+
+    if (ch == '.')
+    {
+        if (psu_input_has_dot)
+            return;
+
+        psu_input_has_dot = 1U;
+    }
+    else if (psu_input_has_dot && (psu_input_frac_len() >= psu_input_max_frac_len()))
+    {
+        return;
+    }
+
+    psu_input_buf[psu_input_len++] = ch;
+    psu_input_buf[psu_input_len] = '\0';
+}
+
+static void psu_input_backspace(void)
+{
+    if (psu_input_len == 0U)
+        return;
+
+    if (psu_input_buf[psu_input_len - 1U] == '.')
+        psu_input_has_dot = 0U;
+
+    psu_input_buf[--psu_input_len] = '\0';
+
+    if (psu_input_len == 0U)
+        psu_input_active = 0U;
+}
+
+static float32_t psu_input_parse(void)
+{
+    float32_t value = 0.0f;
+    float32_t frac = 0.1f;
+    uint16_t after_dot = 0;
+    uint16_t i;
+
+    for (i = 0; i < psu_input_len; ++i)
+    {
+        char ch = psu_input_buf[i];
+
+        if (ch == '.')
+        {
+            after_dot = 1U;
+        }
+        else if ((ch >= '0') && (ch <= '9'))
+        {
+            if (after_dot)
+            {
+                value += (float32_t)(ch - '0') * frac;
+                frac *= 0.1f;
+            }
+            else
+            {
+                value = value * 10.0f + (float32_t)(ch - '0');
+            }
+        }
+    }
+
+    return value;
+}
+
+static float32_t psu_limit_value(float32_t value, float32_t max_value)
+{
+    if (value < 0.0f)
+        return 0.0f;
+
+    if (value > max_value)
+        return max_value;
+
+    return value;
+}
+
+static void psu_input_confirm(void)
+{
+    float32_t value;
+
+    if (psu_input_len == 0U)
+        return;
+
+    value = psu_input_parse();
+
+    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+        psu_v_set = psu_limit_value(value, PSU_V_SET_MAX);
+    else if (psu_edit_target == PSU_EDIT_CURRENT)
+        psu_i_set = psu_limit_value(value, PSU_I_SET_MAX);
+
+    psu_input_clear();
+}
+
+static const char* psu_input_unit_text(void)
+{
+    uint16_t frac_len = psu_input_frac_len();
+
+    if (psu_edit_target == PSU_EDIT_VOLTAGE)
+    {
+        if (psu_input_has_dot && (frac_len >= 2U))
+            return "0.01V";
+
+        if (psu_input_has_dot)
+            return "0.1V";
+
+        return "1V";
+    }
+
+    if (psu_edit_target == PSU_EDIT_CURRENT)
+    {
+        if (psu_input_has_dot)
+            return "0.1mA";
+
+        return "1mA";
+    }
+
+    return "";
+}
+
 static void psu_next_mode(void)
 {
     if (psu_mode == PSU_MODE_CV)
@@ -135,6 +319,69 @@ static void psu_handle_key(uint16_t key_id)
 {
     switch (key_id)
     {
+    case IRIS_SW1_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('1');
+        break;
+
+    case IRIS_SW2_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('2');
+        break;
+
+    case IRIS_SW3_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('3');
+        break;
+
+    case IRIS_SW4_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('4');
+        break;
+
+    case IRIS_SW5_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('5');
+        break;
+
+    case IRIS_SW6_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('6');
+        break;
+
+    case IRIS_SW7_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('7');
+        break;
+
+    case IRIS_SW8_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('8');
+        break;
+
+    case IRIS_SW9_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('9');
+        break;
+
+    case IRIS_SW10_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('0');
+        break;
+
+    case IRIS_SW11_KEY_ID:
+        if (psu_edit_target != PSU_EDIT_MODE)
+            psu_input_append('.');
+        break;
+
+    case IRIS_SW12_KEY_ID:
+        psu_input_confirm();
+        break;
+
+    case IRIS_SW13_KEY_ID:
+        psu_input_backspace();
+        break;
+
     case IRIS_SW14_KEY_ID:
         psu_state = PSU_STATE_ON;
         psu_fault = PSU_FAULT_NONE;
@@ -145,14 +392,17 @@ static void psu_handle_key(uint16_t key_id)
         break;
 
     case IRIS_SW16_KEY_ID:
+        psu_input_clear();
         psu_edit_target = PSU_EDIT_VOLTAGE;
         break;
 
     case IRIS_SW17_KEY_ID:
+        psu_input_clear();
         psu_edit_target = PSU_EDIT_CURRENT;
         break;
 
     case IRIS_SW18_KEY_ID:
+        psu_input_clear();
         psu_edit_target = PSU_EDIT_MODE;
         psu_next_mode();
         break;
@@ -166,7 +416,8 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 {
     ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
     fast_gt key_id = 0;
-    static fast_gt last_key_id = 0;
+    static fast_gt accepted_key_id = 0;
+    static uint16_t release_count = 0;
 
     if(flag_init_cmpt)
     {
@@ -180,8 +431,22 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
         return GMP_TASK_DONE;
     }
 
-    if ((key_id != 0) && (last_key_id == 0))
+    if (key_id == 0)
     {
+        if (release_count < PSU_KEY_RELEASE_COUNT)
+            ++release_count;
+
+        if (release_count >= PSU_KEY_RELEASE_COUNT)
+            accepted_key_id = 0;
+    }
+    else
+    {
+        release_count = 0;
+    }
+
+    if ((key_id != 0) && (accepted_key_id != key_id))
+    {
+        accepted_key_id = key_id;
         psu_handle_key((uint16_t)key_id);
 
         // response key message
@@ -190,8 +455,6 @@ gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 
         gmp_base_print("Receive Key Message, %d\r\n", key_id);
     }
-
-    last_key_id = key_id;
     }
 
     return GMP_TASK_DONE;
@@ -280,19 +543,60 @@ static void psu_format_current(char* str, float32_t current_ma)
     sprintf(str, "%03u.%01u", deci_ma / 10U, deci_ma % 10U);
 }
 
-static void psu_oled_show_line(uint8_t y_page, const char* text)
+static uint16_t psu_oled_line_index(uint8_t y_page)
 {
-    char line[17];
+    return (uint16_t)(y_page / 2U);
+}
+
+static char psu_oled_line_cache[PSU_OLED_LINE_COUNT][PSU_OLED_LINE_LEN + 1U];
+
+static void psu_oled_invalidate_cache(void)
+{
     uint16_t i;
 
-    for (i = 0; (i < 16U) && (text[i] != '\0'); ++i)
-        line[i] = text[i];
+    for (i = 0; i < PSU_OLED_LINE_COUNT; ++i)
+        psu_oled_line_cache[i][0] = '\0';
+}
 
-    for (; i < 16U; ++i)
+static void psu_oled_show_line(uint8_t y_page, const char* text)
+{
+    char line[PSU_OLED_LINE_LEN + 1U];
+    uint16_t line_index = psu_oled_line_index(y_page);
+    uint16_t changed = psu_oled_force_redraw;
+    uint16_t i;
+
+    for (i = 0; (i < PSU_OLED_LINE_LEN) && (text[i] != '\0'); ++i)
+    {
+        if ((text[i] >= ' ') && (text[i] <= '~'))
+            line[i] = text[i];
+        else
+            line[i] = ' ';
+    }
+
+    for (; i < PSU_OLED_LINE_LEN; ++i)
         line[i] = ' ';
 
-    line[16] = '\0';
-    oled_show_str(0, y_page, line);
+    line[PSU_OLED_LINE_LEN] = '\0';
+
+    if (line_index >= PSU_OLED_LINE_COUNT)
+        return;
+
+    for (i = 0; i <= PSU_OLED_LINE_LEN; ++i)
+    {
+        if (psu_oled_line_cache[line_index][i] != line[i])
+        {
+            changed = 1U;
+            break;
+        }
+    }
+
+    if (changed)
+    {
+        for (i = 0; i <= PSU_OLED_LINE_LEN; ++i)
+            psu_oled_line_cache[line_index][i] = line[i];
+
+        oled_show_str(0, y_page, line);
+    }
 }
 
 gmp_task_status_t oled_show_task(gmp_task_t* tsk)
@@ -302,11 +606,20 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
     char i_set_str[8];
     char v_meas_str[8];
     char i_meas_str[8];
+    static uint16_t redraw_counter = 0;
 
     GMP_UNUSED_VAR(tsk);
 
     if (flag_init_cmpt != 1U)
         return GMP_TASK_DONE;
+
+    if (psu_oled_force_redraw || (++redraw_counter >= PSU_OLED_FORCE_REDRAW_COUNT))
+    {
+        oled_clear();
+        psu_oled_invalidate_cache();
+        psu_oled_force_redraw = 1U;
+        redraw_counter = 0;
+    }
 
     psu_format_voltage(v_set_str, psu_v_set);
     psu_format_current(i_set_str, psu_i_set);
@@ -316,7 +629,12 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
     sprintf(line, "%s %s E:%s", psu_state_text(psu_state), psu_mode_text(psu_mode), psu_edit_text(psu_edit_target));
     psu_oled_show_line(0, line);
 
-    sprintf(line, "SV%s SI%s", v_set_str, i_set_str);
+    if ((psu_input_active != 0U) && (psu_edit_target == PSU_EDIT_VOLTAGE))
+        sprintf(line, "IN V:%s %s", psu_input_buf, psu_input_unit_text());
+    else if ((psu_input_active != 0U) && (psu_edit_target == PSU_EDIT_CURRENT))
+        sprintf(line, "IN I:%s %s", psu_input_buf, psu_input_unit_text());
+    else
+        sprintf(line, "SV%s SI%s", v_set_str, i_set_str);
     psu_oled_show_line(2, line);
 
     sprintf(line, "MV%s MI%s", v_meas_str, i_meas_str);
@@ -324,6 +642,8 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
 
     sprintf(line, "FLT:%s", psu_fault_text(psu_fault));
     psu_oled_show_line(6, line);
+
+    psu_oled_force_redraw = 0U;
 
     return GMP_TASK_DONE;
 }
