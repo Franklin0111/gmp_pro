@@ -23,6 +23,24 @@ extern "C"
 //=================================================================================================
 // Controller interface
 
+#define PSU_DAC_MAX_CODE 4095.0f
+#define PSU_DAC_V_FULL_SCALE 10.0f
+#define PSU_DAC_I_FULL_SCALE 100.0f
+
+GMP_STATIC_INLINE uint16_t psu_dac_norm_to_code(float32_t value)
+{
+    float32_t code;
+
+    if (value < 0.0f)
+        value = 0.0f;
+    else if (value > 1.0f)
+        value = 1.0f;
+
+    code = value * PSU_DAC_MAX_CODE + 0.5f;
+
+    return (uint16_t)code;
+}
+
 // Input Callback
 GMP_STATIC_INLINE void ctl_input_callback(void)
 {
@@ -32,11 +50,24 @@ GMP_STATIC_INLINE void ctl_input_callback(void)
 // Output Callback
 GMP_STATIC_INLINE void ctl_output_callback(void)
 {
+    float32_t v_norm;
+    float32_t i_norm;
 
     EPWM_setCounterCompareValue(IRIS_EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 1500);
 
-    DAC_setShadowValue(IRIS_DACA_BASE, iabc.control_port.value.dat[phase_C] * 2048 + 2048);
-    DAC_setShadowValue(IRIS_DACB_BASE, iuvw.control_port.value.dat[phase_C] * 2048 + 2048);
+    if (psu_state == PSU_STATE_ON)
+    {
+        v_norm = psu_v_set / PSU_DAC_V_FULL_SCALE;
+        i_norm = psu_i_set / PSU_DAC_I_FULL_SCALE;
+    }
+    else
+    {
+        v_norm = 0.0f;
+        i_norm = 0.0f;
+    }
+
+    DAC_setShadowValue(IRIS_DACA_BASE, psu_dac_norm_to_code(v_norm));
+    DAC_setShadowValue(IRIS_DACB_BASE, psu_dac_norm_to_code(i_norm));
 
 }
 
