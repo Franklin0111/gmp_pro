@@ -177,10 +177,8 @@ void oled_show_char(uint8_t x, uint8_t y_page, uint8_t chr)
         {
             tx_payload[i + 1] = (data_gt)F6x8[c_offset][i];
         }
-        tx_payload[7] = 0;
-        tx_payload[8] = 0;
-        /* Continuous push of 1 control byte + 8 data bytes */
-        gmp_hal_iic_write_mem(iic_bus, OLED_IIC_7BIT_ADDR, 0, 0, tx_payload, 9, timeout_ticks);
+        /* Continuous push of 1 control byte + 6 data bytes */
+        gmp_hal_iic_write_mem(iic_bus, OLED_IIC_7BIT_ADDR, 0, 0, tx_payload, 7, timeout_ticks);
     }
 }
 
