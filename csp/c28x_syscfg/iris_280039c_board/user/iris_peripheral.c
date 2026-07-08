@@ -102,6 +102,25 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
     return GMP_TASK_DONE;
 }
 
+#define IRIS_SW1_KEY_ID 8U
+#define IRIS_SW2_KEY_ID 9U
+#define IRIS_SW3_KEY_ID 1U
+#define IRIS_SW4_KEY_ID 2U
+#define IRIS_SW5_KEY_ID 3U
+#define IRIS_SW6_KEY_ID 4U
+#define IRIS_SW7_KEY_ID 5U
+#define IRIS_SW8_KEY_ID 6U
+#define IRIS_SW9_KEY_ID 7U
+#define IRIS_SW10_KEY_ID 21U
+#define IRIS_SW11_KEY_ID 22U
+#define IRIS_SW12_KEY_ID 14U
+#define IRIS_SW13_KEY_ID 15U
+#define IRIS_SW14_KEY_ID 16U
+#define IRIS_SW15_KEY_ID 17U
+#define IRIS_SW16_KEY_ID 18U
+#define IRIS_SW17_KEY_ID 19U
+#define IRIS_SW18_KEY_ID 20U
+
 gmp_task_status_t tsk_key_flush(gmp_task_t* tsk)
 {
     ht16k33_dev_t* dev = (ht16k33_dev_t*)tsk->user_data;
