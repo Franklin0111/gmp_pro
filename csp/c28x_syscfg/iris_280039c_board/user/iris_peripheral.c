@@ -6,8 +6,10 @@
 #include "ctl_main.h"
 #include "user_main.h"
 #include "board.h"
+#include "D:/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28003x/include/FlashAPI/F021_F28003x_C28x.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // peripheral
 #include <core/dev/display/ht16k33.h>
@@ -138,12 +140,187 @@ gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk)
 #define PSU_EQEP_MAX_VALID_COUNTS 16L
 #define PSU_EQEP_V_STEP 0.01f
 #define PSU_EQEP_I_STEP 0.1f
+#define PSU_FLASH_PARAM_ADDR 0x08F000UL
+#define PSU_FLASH_SECTOR_U32_LENGTH 0x800UL
+#define PSU_FLASH_TEST_MAGIC0 0x4653U
+#define PSU_FLASH_TEST_MAGIC1 0x5431U
+#define PSU_FLASH_TEST_TAIL 0xA55AU
+#define PSU_FLASH_TEST_OLED_COUNT 12U
 
 static char psu_input_buf[PSU_INPUT_BUF_SIZE];
 static uint16_t psu_input_len = 0;
 static uint16_t psu_input_has_dot = 0;
 static uint16_t psu_input_active = 0;
 static uint16_t psu_oled_force_redraw = 1U;
+static uint16_t psu_flash_test_oled_count = 0U;
+
+volatile uint16_t psu_flash_test_valid = 0U;
+volatile uint16_t psu_flash_test_old_count = 0U;
+volatile uint16_t psu_flash_test_new_count = 0U;
+volatile uint32_t psu_flash_test_init_status = 0U;
+volatile uint32_t psu_flash_test_bank_status = 0U;
+volatile uint32_t psu_flash_test_erase_status = 0U;
+volatile uint32_t psu_flash_test_program_status = 0U;
+volatile uint32_t psu_flash_test_verify_status = 0U;
+volatile uint32_t psu_flash_test_fsm_status = 0U;
+volatile uint16_t psu_flash_test_raw0 = 0U;
+volatile uint16_t psu_flash_test_raw1 = 0U;
+volatile uint16_t psu_flash_test_raw2 = 0U;
+volatile uint16_t psu_flash_test_raw3 = 0U;
+
+#pragma DATA_ALIGN(psu_flash_test_record, 8)
+static uint16_t psu_flash_test_record[8];
+
+#ifdef __cplusplus
+#pragma CODE_SECTION(".TI.ramfunc");
+#else
+#pragma CODE_SECTION(psu_flash_test_checksum, ".TI.ramfunc");
+#endif
+static uint16_t psu_flash_test_checksum(const uint16_t* record)
+{
+    uint16_t checksum = 0x5A5AU;
+    uint16_t i;
+
+    for (i = 0U; i < 6U; ++i)
+        checksum = (uint16_t)((checksum << 1U) ^ (checksum >> 15U) ^ record[i]);
+
+    return checksum;
+}
+
+#ifdef __cplusplus
+#pragma CODE_SECTION(".TI.ramfunc");
+#else
+#pragma CODE_SECTION(psu_flash_test_record_valid, ".TI.ramfunc");
+#endif
+static uint16_t psu_flash_test_record_valid(const uint16_t* record)
+{
+    if ((record[0] != PSU_FLASH_TEST_MAGIC0) || (record[1] != PSU_FLASH_TEST_MAGIC1) ||
+        (record[3] != (uint16_t)(~record[2])) || (record[6] != psu_flash_test_checksum(record)) ||
+        (record[7] != PSU_FLASH_TEST_TAIL))
+        return 0U;
+
+    return 1U;
+}
+
+#ifdef __cplusplus
+#pragma CODE_SECTION(".TI.ramfunc");
+#else
+#pragma CODE_SECTION(psu_flash_basic_test, ".TI.ramfunc");
+#endif
+void psu_flash_basic_test(void)
+{
+    const volatile uint16_t* flash_record = (const volatile uint16_t*)PSU_FLASH_PARAM_ADDR;
+    Fapi_FlashStatusWordType flash_status_word;
+    Fapi_StatusType api_status;
+    bool interrupts_were_disabled;
+    uint16_t old_record[8];
+    uint16_t i;
+
+    for (i = 0U; i < 8U; ++i)
+        old_record[i] = flash_record[i];
+
+    psu_flash_test_raw0 = old_record[0];
+    psu_flash_test_raw1 = old_record[1];
+    psu_flash_test_raw2 = old_record[2];
+    psu_flash_test_raw3 = old_record[3];
+
+    if (psu_flash_test_record_valid(old_record))
+    {
+        psu_flash_test_valid = 1U;
+        psu_flash_test_old_count = old_record[2];
+    }
+    else
+    {
+        psu_flash_test_valid = 0U;
+        psu_flash_test_old_count = 0U;
+    }
+
+    psu_flash_test_new_count = psu_flash_test_old_count + 1U;
+
+    psu_flash_test_record[0] = PSU_FLASH_TEST_MAGIC0;
+    psu_flash_test_record[1] = PSU_FLASH_TEST_MAGIC1;
+    psu_flash_test_record[2] = psu_flash_test_new_count;
+    psu_flash_test_record[3] = (uint16_t)(~psu_flash_test_new_count);
+    psu_flash_test_record[4] = 0x1357U;
+    psu_flash_test_record[5] = 0x2468U;
+    psu_flash_test_record[6] = psu_flash_test_checksum(psu_flash_test_record);
+    psu_flash_test_record[7] = PSU_FLASH_TEST_TAIL;
+
+    psu_flash_test_init_status = 0xFFFFU;
+    psu_flash_test_bank_status = 0xFFFFU;
+    psu_flash_test_erase_status = 0xFFFFU;
+    psu_flash_test_program_status = 0xFFFFU;
+    psu_flash_test_verify_status = 0xFFFFU;
+    psu_flash_test_fsm_status = 0U;
+
+    interrupts_were_disabled = Interrupt_disableGlobal();
+
+    api_status = Fapi_initializeAPI(F021_CPU0_BASE_ADDRESS, DEVICE_SYSCLK_FREQ / 1000000U);
+    psu_flash_test_init_status = (uint32_t)api_status;
+    if (api_status != Fapi_Status_Success)
+        goto flash_test_done;
+
+    Flash_disablePrefetch(FLASH0CTRL_BASE);
+    FLASH_DELAY_CONFIG;
+
+    api_status = Fapi_setActiveFlashBank(Fapi_FlashBank0);
+    psu_flash_test_bank_status = (uint32_t)api_status;
+    if (api_status != Fapi_Status_Success)
+        goto flash_test_done;
+
+    api_status = Fapi_issueAsyncCommand(Fapi_ClearMore);
+    while (Fapi_checkFsmForReady() != Fapi_Status_FsmReady)
+    {
+    }
+    if (api_status != Fapi_Status_Success)
+    {
+        psu_flash_test_erase_status = (uint32_t)api_status;
+        goto flash_test_done;
+    }
+
+    api_status = Fapi_issueAsyncCommandWithAddress(Fapi_EraseSector, (uint32*)PSU_FLASH_PARAM_ADDR);
+    while (Fapi_checkFsmForReady() != Fapi_Status_FsmReady)
+    {
+    }
+    psu_flash_test_erase_status = (uint32_t)api_status;
+    if (api_status != Fapi_Status_Success)
+        goto flash_test_done;
+
+    psu_flash_test_fsm_status = (uint32_t)Fapi_getFsmStatus();
+    if (psu_flash_test_fsm_status != 0U)
+        goto flash_test_done;
+
+    api_status = Fapi_doBlankCheck((uint32*)PSU_FLASH_PARAM_ADDR, PSU_FLASH_SECTOR_U32_LENGTH, &flash_status_word);
+    psu_flash_test_erase_status = (uint32_t)api_status;
+    if (api_status != Fapi_Status_Success)
+        goto flash_test_done;
+
+    api_status = Fapi_issueProgrammingCommand((uint32*)PSU_FLASH_PARAM_ADDR, psu_flash_test_record, 8U, 0, 0,
+                                              Fapi_AutoEccGeneration);
+    while (Fapi_checkFsmForReady() != Fapi_Status_FsmReady)
+    {
+    }
+    psu_flash_test_program_status = (uint32_t)api_status;
+    if (api_status != Fapi_Status_Success)
+        goto flash_test_done;
+
+    psu_flash_test_fsm_status = (uint32_t)Fapi_getFsmStatus();
+    if (psu_flash_test_fsm_status != 0U)
+        goto flash_test_done;
+
+    api_status = Fapi_doVerify((uint32*)PSU_FLASH_PARAM_ADDR, 4U, (uint32*)psu_flash_test_record, &flash_status_word);
+    psu_flash_test_verify_status = (uint32_t)api_status;
+
+flash_test_done:
+    Flash_enablePrefetch(FLASH0CTRL_BASE);
+    FLASH_DELAY_CONFIG;
+
+    if (interrupts_were_disabled == false)
+        Interrupt_enableGlobal();
+
+    psu_flash_test_oled_count = PSU_FLASH_TEST_OLED_COUNT;
+    psu_oled_force_redraw = 1U;
+}
 
 static void psu_input_clear(void)
 {
@@ -763,6 +940,34 @@ gmp_task_status_t oled_show_task(gmp_task_t* tsk)
         psu_oled_invalidate_cache();
         psu_oled_force_redraw = 1U;
         redraw_counter = 0;
+    }
+
+    if (psu_flash_test_oled_count > 0U)
+    {
+        sprintf(line, "FL A%06lX", (uint32_t)PSU_FLASH_PARAM_ADDR);
+        psu_oled_show_line(0, line);
+
+        sprintf(line, "O%05u N%05u", psu_flash_test_old_count, psu_flash_test_new_count);
+        psu_oled_show_line(1, line);
+
+        sprintf(line, "V%u R%04X %04X", psu_flash_test_valid, psu_flash_test_raw0, psu_flash_test_raw1);
+        psu_oled_show_line(2, line);
+
+        sprintf(line, "I%lu B%lu E%lu", psu_flash_test_init_status, psu_flash_test_bank_status,
+                psu_flash_test_erase_status);
+        psu_oled_show_line(3, line);
+
+        sprintf(line, "P%lu V%lu F%lu", psu_flash_test_program_status, psu_flash_test_verify_status,
+                psu_flash_test_fsm_status);
+        psu_oled_show_line(4, line);
+
+        --psu_flash_test_oled_count;
+        if (psu_flash_test_oled_count == 0U)
+            psu_oled_force_redraw = 1U;
+        else
+            psu_oled_force_redraw = 0U;
+
+        return GMP_TASK_DONE;
     }
 
     psu_format_voltage(v_set_str, psu_v_set);

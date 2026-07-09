@@ -230,6 +230,7 @@ gmp_task_status_t tsk_startup(gmp_task_t* tsk)
 
         // init and test the oled.
         oled_init();
+        psu_flash_basic_test();
 
         //        hdc1080_config_reg_t hdc1080_cfg = {.all = 0};
         //        hdc1080_cfg.bits.mode = 1; // continuous acquisition data

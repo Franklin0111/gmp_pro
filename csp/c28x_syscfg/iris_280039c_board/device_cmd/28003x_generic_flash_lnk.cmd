@@ -17,8 +17,7 @@ MEMORY
    RAMLS7           : origin = 0x0000B800, length = 0x00000800
 
    RAMGS0           : origin = 0x0000C000, length = 0x00001000
-   RAMGS1           : origin = 0x0000D000, length = 0x00001000
-   RAMGS2           : origin = 0x0000E000, length = 0x00001000
+   RAMFLASHAPI      : origin = 0x0000D000, length = 0x00002000
    RAMGS3           : origin = 0x0000F000, length = 0x00000FF8
    // RAMGS3_RSVD      : origin = 0x0000FFF8, length = 0x00000008 /* Reserve and do not use for code as per the errata advisory "Memory: Prefetching Beyond Valid Memory" */
 
@@ -126,8 +125,12 @@ SECTIONS
    IQmath           : > FLASH_BANK0_SEC1, ALIGN(8)
    IQmathTables     : > FLASH_BANK0_SEC2, ALIGN(8)
 
-   .TI.ramfunc      : LOAD = FLASH_BANK0_SEC1,
-                      RUN = RAMLS0,
+   GROUP
+   {
+      .TI.ramfunc
+      { -l "D:/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28003x/lib/FAPI_F28003x_EABI_v1.58.10.lib"}
+   }                  LOAD = FLASH_BANK0_SEC1,
+                      RUN = RAMFLASHAPI,
                       LOAD_START(RamfuncsLoadStart),
                       LOAD_SIZE(RamfuncsLoadSize),
                       LOAD_END(RamfuncsLoadEnd),
