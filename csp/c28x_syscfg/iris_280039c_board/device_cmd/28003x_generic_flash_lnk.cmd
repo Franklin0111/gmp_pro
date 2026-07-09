@@ -44,7 +44,8 @@ MEMORY
    FLASH_BANK0_SEC12 : origin = 0x08C000, length = 0x001000
    FLASH_BANK0_SEC13 : origin = 0x08D000, length = 0x001000
    FLASH_BANK0_SEC14 : origin = 0x08E000, length = 0x001000
-   FLASH_BANK0_SEC15 : origin = 0x08F000, length = 0x001000
+//   FLASH_BANK0_SEC15 : origin = 0x08F000, length = 0x001000
+   PSU_PARAM_FLASH    : origin = 0x08F000, length = 0x001000
 
    /* BANK 1 */
    FLASH_BANK1       : origin = 0x090000, length = 0x00FFF0
