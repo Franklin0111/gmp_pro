@@ -172,6 +172,7 @@ gmp_task_t tasks[] = {
     {"flush_led", tsk_LED_flush, 500, 200, 0, (void*)&ht16k33},
     {"fpga_test", fpga_test_task, 1000, 600, 1, NULL},
     {"blink_led", tsk_blink, 250, 100, 1, NULL},
+    {"save_psu", psu_flash_save_task, 500, 300, 1, NULL},
     {"startup", tsk_startup, 250, 0, 1, NULL},
 };
 
@@ -230,7 +231,7 @@ gmp_task_status_t tsk_startup(gmp_task_t* tsk)
 
         // init and test the oled.
         oled_init();
-        psu_flash_basic_test();
+        psu_flash_load_settings();
 
         //        hdc1080_config_reg_t hdc1080_cfg = {.all = 0};
         //        hdc1080_cfg.bits.mode = 1; // continuous acquisition data

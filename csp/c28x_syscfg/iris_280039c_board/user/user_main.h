@@ -61,7 +61,9 @@ gmp_task_status_t tsk_eqep_flush(gmp_task_t* tsk);
 gmp_task_status_t tsk_LED_flush(gmp_task_t* tsk);
 gmp_task_status_t fpga_test_task(gmp_task_t* tsk);
 gmp_task_status_t oled_show_task(gmp_task_t* tsk);
-void psu_flash_basic_test(void);
+gmp_task_status_t psu_flash_save_task(gmp_task_t* tsk);
+void psu_flash_load_settings(void);
+void psu_mark_settings_dirty(void);
 
 
 // peripheral function
