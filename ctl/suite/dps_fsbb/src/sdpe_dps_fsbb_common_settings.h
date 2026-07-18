@@ -25,7 +25,7 @@ extern "C"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_ID "dps_fsbb_common"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_SUITE "dps_fsbb"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_VERSION "1.0.0"
-#define DPS_FSBB_COMMON_SDPE_PROJECT_UPDATED_AT "2026-07-16"
+#define DPS_FSBB_COMMON_SDPE_PROJECT_UPDATED_AT "2026-07-17"
 
 //=================================================================================================
 /**
@@ -165,7 +165,7 @@ extern "C"
 /**
  * @brief Default current limit.
  */
-#define FSBB_DEFAULT_CURRENT_LIMIT (5.0f)
+#define FSBB_DEFAULT_CURRENT_LIMIT (0.1f)
 
 /**
  * @brief Maximum leg duty.
