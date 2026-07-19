@@ -102,7 +102,7 @@ void ctl_init(void)
     // init FSBB controller core
     ctl_init_dcdc_core(&dcdc_core, &core_init);
     /* Conservative IOUT outer PI.  Its output is an IL reference in PU. */
-    ctl_init_pid(&iout_outer_pid, 0.1f, 5.0f, 0.0f, CONTROLLER_FREQUENCY);
+    ctl_init_pid(&iout_outer_pid, 0.15f, 7.5f, 0.0f, CONTROLLER_FREQUENCY);
     ctl_set_pid_limit(&iout_outer_pid,
                       float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
                       float2ctrl(0.0f));
