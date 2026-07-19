@@ -15,6 +15,53 @@ extern "C"
 
 void GPIO_WritePin(uint16_t gpioNumber, uint16_t outVal);
 
+/** Apply y = slope * x + offset to a per-unit voltage sample. */
+GMP_STATIC_INLINE ctrl_gt ctl_fsbb_vout_cal_segment(ctrl_gt measured_pu,
+                                                    parameter_gt slope,
+                                                    parameter_gt offset_v)
+{
+    return ctl_mul(measured_pu, float2ctrl(slope)) + float2ctrl(offset_v / CTRL_VOLTAGE_BASE);
+}
+
+/**
+ * @brief Correct the DSP Vout feedback using the 30 V bench calibration.
+ *
+ * The x coordinates are the voltage reported by the original DSP conversion;
+ * the y coordinates are the corresponding voltage measured at the load.  The
+ * points around 30 V are intentionally kept as separate segments because the
+ * converter changes modulation region there.  Above the final point the final
+ * segment is extrapolated so that over-voltage protection remains effective.
+ */
+GMP_STATIC_INLINE ctrl_gt ctl_fsbb_correct_vout_feedback(ctrl_gt measured_pu)
+{
+    if (measured_pu <= float2ctrl(0.0f))
+        return float2ctrl(0.0f);
+    if (measured_pu <= float2ctrl(5.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.054f, 0.0f);
+    if (measured_pu <= float2ctrl(15.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.025f, 0.145f);
+    if (measured_pu <= float2ctrl(20.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.030f, 0.070f);
+    if (measured_pu <= float2ctrl(25.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.040f, -0.130f);
+    if (measured_pu <= float2ctrl(27.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.075f, -1.005f);
+    if (measured_pu <= float2ctrl(29.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.390f, -9.510f);
+    if (measured_pu <= float2ctrl(30.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.970f, -26.330f);
+    if (measured_pu <= float2ctrl(31.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 1.830f, -22.130f);
+    if (measured_pu <= float2ctrl(33.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 0.600f, 16.000f);
+    if (measured_pu <= float2ctrl(35.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 0.790f, 9.730f);
+    if (measured_pu <= float2ctrl(45.0f / CTRL_VOLTAGE_BASE))
+        return ctl_fsbb_vout_cal_segment(measured_pu, 0.924f, 5.040f);
+
+    return ctl_fsbb_vout_cal_segment(measured_pu, 0.964f, 3.240f);
+}
+
 GMP_STATIC_INLINE uint16_t ctl_fsbb_active_faults(void)
 {
     uint16_t faults = FSBB_FAULT_NONE;
@@ -48,6 +95,7 @@ GMP_STATIC_INLINE void ctl_input_callback(void)
     adc_v_in.control_port.value = float2ctrl(FSBB_INPUT_VOLTAGE_NOMINAL / CTRL_VOLTAGE_BASE);
 #endif
     ctl_step_adc_channel(&adc_v_out, ADC_readResult(FSBB_VOUT_ADC_BASE, FSBB_VOUT));
+    adc_v_out.control_port.value = ctl_fsbb_correct_vout_feedback(adc_v_out.control_port.value);
     ctl_step_adc_channel(&adc_i_L, ADC_readResult(FSBB_IL_ADC_BASE, FSBB_IL));
 #if defined FSBB_ENABLE_IOUT_SAMPLE
     ctl_step_adc_channel(&adc_i_load, ADC_readResult(FSBB_IOUT_ADC_BASE, FSBB_IOUT));

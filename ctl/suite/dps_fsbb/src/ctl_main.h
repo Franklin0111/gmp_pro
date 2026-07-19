@@ -40,6 +40,9 @@ extern ctrl_gt g_v_out_ref_user;
 extern ctrl_gt g_i_limit_user;
 extern ctrl_gt g_i_out_ref_user;
 extern ctrl_gt g_iout_inner_ref;
+
+/** 4096-sample average of the filtered output-voltage feedback, in volts. */
+extern volatile float g_vout_filtered_avg_v;
 extern ctrl_gt v_req;
 
 typedef enum _tag_fsbb_regulation_mode
@@ -87,6 +90,7 @@ void ctl_mainloop(void);
 void ctl_enable_pwm(void);
 void ctl_disable_pwm(void);
 void clear_all_controllers(void);
+void ctl_update_vout_filtered_average(void);
 gmp_task_status_t tsk_protect(gmp_task_t* tsk);
 
 /** Execute one control sample after the platform input callback has run. */
@@ -154,6 +158,9 @@ GMP_STATIC_INLINE void ctl_dispatch(void)
         }
     }
 #endif
+
+    /* Update the slow debug/commissioning average after the ADC filters run. */
+    ctl_update_vout_filtered_average();
 
     ctl_step_fsbb_modulator(&fsbb_mod, v_req, adc_v_in.control_port.value);
 }

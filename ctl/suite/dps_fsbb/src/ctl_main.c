@@ -45,6 +45,11 @@ ctrl_gt g_iout_inner_ref = float2ctrl(0.0f);
 volatile fsbb_regulation_mode_t g_fsbb_regulation_mode = FSBB_REGULATION_CV_CASCADE;
 ctrl_gt v_req = float2ctrl(0.0f);
 
+/* Output-voltage commissioning average: 4096 samples at 20 kHz = 204.8 ms. */
+volatile float g_vout_filtered_avg_v = 0.0f;
+static float g_vout_filtered_sum_v = 0.0f;
+static uint32_t g_vout_filtered_sample_count = 0U;
+
 //=================================================================================================
 // CTL initialize routine
 
@@ -244,6 +249,23 @@ void clear_all_controllers(void)
     ctl_clear_dcdc_core(&dcdc_core);
     ctl_clear_pid(&iout_outer_pid);
     g_iout_inner_ref = float2ctrl(0.0f);
+    g_vout_filtered_avg_v = 0.0f;
+    g_vout_filtered_sum_v = 0.0f;
+    g_vout_filtered_sample_count = 0U;
+}
+
+void ctl_update_vout_filtered_average(void)
+{
+    g_vout_filtered_sum_v +=
+        (float)(dcdc_core.filter_v_out.out * CTRL_VOLTAGE_BASE);
+    g_vout_filtered_sample_count++;
+
+    if (g_vout_filtered_sample_count >= 4096U)
+    {
+        g_vout_filtered_avg_v = g_vout_filtered_sum_v / 4096.0f;
+        g_vout_filtered_sum_v = 0.0f;
+        g_vout_filtered_sample_count = 0U;
+    }
 }
 
 void ctl_enable_pwm(void)
