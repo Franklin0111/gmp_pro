@@ -135,12 +135,12 @@ extern "C"
 /**
  * @brief Minimum input voltage.
  */
-#define FSBB_INPUT_VOLTAGE_MIN (12.0f)
+#define FSBB_INPUT_VOLTAGE_MIN (5.0f)
 
 /**
  * @brief Nominal model source voltage.
  */
-#define FSBB_INPUT_VOLTAGE_NOMINAL (10.0f)
+#define FSBB_INPUT_VOLTAGE_NOMINAL (30.0f)
 
 /**
  * @brief Maximum output voltage.
@@ -150,7 +150,7 @@ extern "C"
 /**
  * @brief Minimum output voltage.
  */
-#define FSBB_OUTPUT_VOLTAGE_MIN (3.0f)
+#define FSBB_OUTPUT_VOLTAGE_MIN (1.0f)
 
 /**
  * @brief Output current limit.
@@ -170,12 +170,12 @@ extern "C"
 /**
  * @brief Maximum leg duty.
  */
-#define FSBB_DUTY_MAX (0.95f)
+#define FSBB_DUTY_MAX (0.98f)
 
 /**
  * @brief Minimum leg duty.
  */
-#define FSBB_DUTY_MIN (0.05f)
+#define FSBB_DUTY_MIN (0.02f)
 
 /**
  * @brief Positive inductor-current protection threshold.

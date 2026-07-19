@@ -221,7 +221,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "12.0"
+        "float": "5.0"
       },
       "description": "Minimum input voltage."
     },
@@ -231,7 +231,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "10.0"
+        "float": "30.0"
       },
       "description": "Nominal model source voltage."
     },
@@ -251,7 +251,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "3.0"
+        "float": "1.0"
       },
       "description": "Minimum output voltage."
     },
@@ -291,7 +291,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "0.95"
+        "float": "0.98"
       },
       "description": "Maximum leg duty."
     },
@@ -301,7 +301,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "0.05"
+        "float": "0.02"
       },
       "description": "Minimum leg duty."
     },
