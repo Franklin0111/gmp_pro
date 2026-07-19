@@ -67,7 +67,7 @@ extern "C"
 /**
  * @brief Enable output/load current sampling path.
  */
-// #define FSBB_ENABLE_IOUT_SAMPLE
+#define FSBB_ENABLE_IOUT_SAMPLE
 
 /**
  * @brief Enable input voltage sampling path.
