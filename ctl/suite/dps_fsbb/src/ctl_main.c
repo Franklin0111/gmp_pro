@@ -38,6 +38,9 @@ volatile fast_gt g_fsbb_output_enabled = 0;
 // User commands
 ctrl_gt g_v_out_ref_user = float2ctrl(FSBB_DEFAULT_OUTPUT_VOLTAGE / CTRL_VOLTAGE_BASE);
 ctrl_gt g_i_limit_user = float2ctrl(FSBB_DEFAULT_CURRENT_LIMIT / CTRL_CURRENT_BASE);
+/* Conservative independent IOUT target for initial constant-current commissioning. */
+ctrl_gt g_i_out_ref_user = float2ctrl(0.1f / CTRL_CURRENT_BASE);
+volatile fsbb_regulation_mode_t g_fsbb_regulation_mode = FSBB_REGULATION_CV_CASCADE;
 ctrl_gt v_req = float2ctrl(0.0f);
 
 //=================================================================================================

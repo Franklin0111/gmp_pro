@@ -25,7 +25,7 @@ extern "C"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_ID "dps_fsbb_common"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_SUITE "dps_fsbb"
 #define DPS_FSBB_COMMON_SDPE_PROJECT_VERSION "1.0.0"
-#define DPS_FSBB_COMMON_SDPE_PROJECT_UPDATED_AT "2026-07-18"
+#define DPS_FSBB_COMMON_SDPE_PROJECT_UPDATED_AT "2026-07-19"
 
 //=================================================================================================
 /**
@@ -155,7 +155,7 @@ extern "C"
 /**
  * @brief Output current limit.
  */
-#define FSBB_OUTPUT_CURRENT_LIM (3.0f)
+#define FSBB_OUTPUT_CURRENT_LIM (10.0f)
 
 /**
  * @brief Default voltage-loop command.
@@ -165,7 +165,7 @@ extern "C"
 /**
  * @brief Default current limit.
  */
-#define FSBB_DEFAULT_CURRENT_LIMIT (3.0f)
+#define FSBB_DEFAULT_CURRENT_LIMIT (10.0f)
 
 /**
  * @brief Maximum leg duty.
@@ -180,12 +180,12 @@ extern "C"
 /**
  * @brief Positive inductor-current protection threshold.
  */
-#define FSBB_PROTECT_IL_MAX (4.0f)
+#define FSBB_PROTECT_IL_MAX (8.0f)
 
 /**
  * @brief Negative inductor-current protection threshold.
  */
-#define FSBB_PROTECT_IL_MIN (-4.0f)
+#define FSBB_PROTECT_IL_MIN (-8.0f)
 
 /**
  * @brief Open-loop equivalent voltage command.

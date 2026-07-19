@@ -5,7 +5,7 @@
   "description": "Platform-independent FSBB topology, sensing, protection and control contract shared by all hardware and SIL targets.",
   "suite": "dps_fsbb",
   "version": "1.0.0",
-  "updated_at": "2026-07-18",
+  "updated_at": "2026-07-19",
   "output_header": "sdpe_dps_fsbb_common_settings.h",
   "hardware": [
     {
@@ -261,7 +261,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "3.0"
+        "float": "10.0"
       },
       "description": "Output current limit."
     },
@@ -281,7 +281,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "3.0"
+        "float": "10.0"
       },
       "description": "Default current limit."
     },
@@ -311,7 +311,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "4.0"
+        "float": "8.0"
       },
       "description": "Positive inductor-current protection threshold."
     },
@@ -321,7 +321,7 @@
       "enabled": true,
       "weak": false,
       "binding": {
-        "float": "-4.0"
+        "float": "-8.0"
       },
       "description": "Negative inductor-current protection threshold."
     },

@@ -37,7 +37,16 @@ extern volatile fast_gt index_adc_calibrator;
 
 extern ctrl_gt g_v_out_ref_user;
 extern ctrl_gt g_i_limit_user;
+extern ctrl_gt g_i_out_ref_user;
 extern ctrl_gt v_req;
+
+typedef enum _tag_fsbb_regulation_mode
+{
+    FSBB_REGULATION_CV_CASCADE = 0,
+    FSBB_REGULATION_CC_OUTPUT = 1
+} fsbb_regulation_mode_t;
+
+extern volatile fsbb_regulation_mode_t g_fsbb_regulation_mode;
 
 typedef enum _tag_fsbb_fault
 {
@@ -91,16 +100,36 @@ GMP_STATIC_INLINE void ctl_dispatch(void)
     v_req = ctl_step_dcdc_current_loop(&dcdc_core);
 #elif (BUILD_LEVEL == 3)
     {
-        ctrl_gt current_limit = ctl_sat(g_i_limit_user,
-                                        float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
-                                        float2ctrl(0.0f));
-        dcdc_core.mode = CTL_DCDC_MODE_VOLTAGELOOP;
-        dcdc_core.v_target = ctl_sat(g_v_out_ref_user,
-                                     float2ctrl(FSBB_OUTPUT_VOLTAGE_MAX / CTRL_VOLTAGE_BASE),
-                                     float2ctrl(FSBB_OUTPUT_VOLTAGE_MIN / CTRL_VOLTAGE_BASE));
-        ctl_set_pid_limit(&dcdc_core.voltage_pid, current_limit, float2ctrl(0.0f));
-        ctl_set_pid_int_limit(&dcdc_core.voltage_pid, current_limit, float2ctrl(0.0f));
-        v_req = ctl_step_dcdc_cascade(&dcdc_core);
+        if (g_fsbb_regulation_mode == FSBB_REGULATION_CC_OUTPUT)
+        {
+            /* IOUT closed loop.  The existing FSBB blueprint is a cascade
+             * blueprint, so do not run the parallel CV/CC routine with its
+             * differently dimensioned voltage-loop output.  Clamp the
+             * synthesized voltage command to the user voltage ceiling. */
+            dcdc_core.mode = CTL_DCDC_MODE_CURRENTLOOP;
+            dcdc_core.i_target = ctl_sat(g_i_out_ref_user,
+                                         float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
+                                         float2ctrl(0.0f));
+            v_req = ctl_step_dcdc_output_current_loop(&dcdc_core);
+            v_req = ctl_sat(v_req,
+                            ctl_sat(g_v_out_ref_user,
+                                    float2ctrl(FSBB_OUTPUT_VOLTAGE_MAX / CTRL_VOLTAGE_BASE),
+                                    float2ctrl(FSBB_OUTPUT_VOLTAGE_MIN / CTRL_VOLTAGE_BASE)),
+                            float2ctrl(0.0f));
+        }
+        else
+        {
+            ctrl_gt current_limit = ctl_sat(g_i_limit_user,
+                                            float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
+                                            float2ctrl(0.0f));
+            dcdc_core.mode = CTL_DCDC_MODE_VOLTAGELOOP;
+            dcdc_core.v_target = ctl_sat(g_v_out_ref_user,
+                                         float2ctrl(FSBB_OUTPUT_VOLTAGE_MAX / CTRL_VOLTAGE_BASE),
+                                         float2ctrl(FSBB_OUTPUT_VOLTAGE_MIN / CTRL_VOLTAGE_BASE));
+            ctl_set_pid_limit(&dcdc_core.voltage_pid, current_limit, float2ctrl(0.0f));
+            ctl_set_pid_int_limit(&dcdc_core.voltage_pid, current_limit, float2ctrl(0.0f));
+            v_req = ctl_step_dcdc_cascade(&dcdc_core);
+        }
     }
 #endif
 
