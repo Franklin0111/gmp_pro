@@ -18,6 +18,7 @@ cia402_sm_t cia402_sm;
 
 // Control Law Core
 ctl_dcdc_core_t dcdc_core;
+ctl_pid_t iout_outer_pid;
 
 // Input channel
 adc_channel_t adc_v_in;
@@ -40,6 +41,7 @@ ctrl_gt g_v_out_ref_user = float2ctrl(FSBB_DEFAULT_OUTPUT_VOLTAGE / CTRL_VOLTAGE
 ctrl_gt g_i_limit_user = float2ctrl(FSBB_DEFAULT_CURRENT_LIMIT / CTRL_CURRENT_BASE);
 /* Conservative independent IOUT target for initial constant-current commissioning. */
 ctrl_gt g_i_out_ref_user = float2ctrl(0.1f / CTRL_CURRENT_BASE);
+ctrl_gt g_iout_inner_ref = float2ctrl(0.0f);
 volatile fsbb_regulation_mode_t g_fsbb_regulation_mode = FSBB_REGULATION_CV_CASCADE;
 ctrl_gt v_req = float2ctrl(0.0f);
 
@@ -93,6 +95,14 @@ void ctl_init(void)
 
     // init FSBB controller core
     ctl_init_dcdc_core(&dcdc_core, &core_init);
+    /* Conservative IOUT outer PI.  Its output is an IL reference in PU. */
+    ctl_init_pid(&iout_outer_pid, 0.1f, 5.0f, 0.0f, CONTROLLER_FREQUENCY);
+    ctl_set_pid_limit(&iout_outer_pid,
+                      float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
+                      float2ctrl(0.0f));
+    ctl_set_pid_int_limit(&iout_outer_pid,
+                          float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
+                          float2ctrl(0.0f));
     ctl_set_dcdc_core_limits(&dcdc_core,
                              float2ctrl(FSBB_OUTPUT_VOLTAGE_MAX / CTRL_VOLTAGE_BASE),
                              float2ctrl(0.0f));
@@ -232,6 +242,8 @@ fast_gt ctl_exec_adc_calibration(void)
 void clear_all_controllers(void)
 {
     ctl_clear_dcdc_core(&dcdc_core);
+    ctl_clear_pid(&iout_outer_pid);
+    g_iout_inner_ref = float2ctrl(0.0f);
 }
 
 void ctl_enable_pwm(void)

@@ -24,6 +24,7 @@ extern "C"
 
 extern cia402_sm_t cia402_sm;
 extern ctl_dcdc_core_t dcdc_core;
+extern ctl_pid_t iout_outer_pid;
 
 extern adc_channel_t adc_v_in;
 extern adc_channel_t adc_v_out;
@@ -38,6 +39,7 @@ extern volatile fast_gt index_adc_calibrator;
 extern ctrl_gt g_v_out_ref_user;
 extern ctrl_gt g_i_limit_user;
 extern ctrl_gt g_i_out_ref_user;
+extern ctrl_gt g_iout_inner_ref;
 extern ctrl_gt v_req;
 
 typedef enum _tag_fsbb_regulation_mode
@@ -47,6 +49,24 @@ typedef enum _tag_fsbb_regulation_mode
 } fsbb_regulation_mode_t;
 
 extern volatile fsbb_regulation_mode_t g_fsbb_regulation_mode;
+
+/** Execute IOUT outer loop -> IL inner loop cascade control. */
+GMP_STATIC_INLINE ctrl_gt ctl_step_fsbb_iout_cascade(ctl_dcdc_core_t* core)
+{
+    ctl_dcdc_internal_ingest_and_filter(core);
+
+    /* Outer loop: regulated load/output current -> inductor-current reference. */
+    core->i_ramp_ref = ctl_step_slope_limiter(&core->ramp_i, core->i_target);
+    g_iout_inner_ref = ctl_step_pid_ser(&iout_outer_pid,
+                                        core->i_ramp_ref - core->filter_i_load.out);
+
+    /* Inner loop: inductor-current reference -> synthesized voltage command. */
+    core->v_out_formal = ctl_step_pid_ser(&core->current_pid,
+                                          g_iout_inner_ref - core->filter_i_L.out);
+    core->v_out_formal = ctl_sat(core->v_out_formal, core->out_max, core->out_min);
+    core->is_current_dominant = 1;
+    return core->v_out_formal;
+}
 
 typedef enum _tag_fsbb_fault
 {
@@ -102,15 +122,17 @@ GMP_STATIC_INLINE void ctl_dispatch(void)
     {
         if (g_fsbb_regulation_mode == FSBB_REGULATION_CC_OUTPUT)
         {
-            /* IOUT closed loop.  The existing FSBB blueprint is a cascade
-             * blueprint, so do not run the parallel CV/CC routine with its
-             * differently dimensioned voltage-loop output.  Clamp the
-             * synthesized voltage command to the user voltage ceiling. */
+            /* IOUT outer loop -> IL inner loop cascade. */
+            ctrl_gt inner_i_limit = ctl_sat(g_i_limit_user,
+                                             float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
+                                             float2ctrl(0.0f));
             dcdc_core.mode = CTL_DCDC_MODE_CURRENTLOOP;
             dcdc_core.i_target = ctl_sat(g_i_out_ref_user,
                                          float2ctrl(FSBB_OUTPUT_CURRENT_LIM / CTRL_CURRENT_BASE),
                                          float2ctrl(0.0f));
-            v_req = ctl_step_dcdc_output_current_loop(&dcdc_core);
+            ctl_set_pid_limit(&iout_outer_pid, inner_i_limit, float2ctrl(0.0f));
+            ctl_set_pid_int_limit(&iout_outer_pid, inner_i_limit, float2ctrl(0.0f));
+            v_req = ctl_step_fsbb_iout_cascade(&dcdc_core);
             v_req = ctl_sat(v_req,
                             ctl_sat(g_v_out_ref_user,
                                     float2ctrl(FSBB_OUTPUT_VOLTAGE_MAX / CTRL_VOLTAGE_BASE),
