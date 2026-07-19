@@ -52,6 +52,7 @@ typedef enum _tag_fsbb_regulation_mode
 } fsbb_regulation_mode_t;
 
 extern volatile fsbb_regulation_mode_t g_fsbb_regulation_mode;
+extern volatile fsbb_regulation_mode_t g_fsbb_applied_regulation_mode;
 
 /** Execute IOUT outer loop -> IL inner loop cascade control. */
 GMP_STATIC_INLINE ctrl_gt ctl_step_fsbb_iout_cascade(ctl_dcdc_core_t* core)
@@ -93,6 +94,29 @@ void clear_all_controllers(void);
 void ctl_update_vout_filtered_average(void);
 gmp_task_status_t tsk_protect(gmp_task_t* tsk);
 
+/** Load the requested mode's commissioning defaults once after a mode change. */
+GMP_STATIC_INLINE void ctl_apply_fsbb_regulation_mode_defaults(void)
+{
+    if (g_fsbb_regulation_mode == g_fsbb_applied_regulation_mode)
+        return;
+
+    if (g_fsbb_regulation_mode == FSBB_REGULATION_CC_OUTPUT)
+    {
+        /* CC: 6 A maximum IL request and 25 V compliance-voltage ceiling. */
+        g_i_limit_user = float2ctrl(6.0f / CTRL_CURRENT_BASE);
+        g_v_out_ref_user = float2ctrl(25.0f / CTRL_VOLTAGE_BASE);
+    }
+    else
+    {
+        /* CV: 1 A current ceiling and 15 V output-voltage target. */
+        g_i_limit_user = float2ctrl(1.0f / CTRL_CURRENT_BASE);
+        g_v_out_ref_user = float2ctrl(15.0f / CTRL_VOLTAGE_BASE);
+    }
+
+    clear_all_controllers();
+    g_fsbb_applied_regulation_mode = g_fsbb_regulation_mode;
+}
+
 /** Execute one control sample after the platform input callback has run. */
 GMP_STATIC_INLINE void ctl_dispatch(void)
 {
@@ -124,6 +148,8 @@ GMP_STATIC_INLINE void ctl_dispatch(void)
     v_req = ctl_step_dcdc_current_loop(&dcdc_core);
 #elif (BUILD_LEVEL == 3)
     {
+        ctl_apply_fsbb_regulation_mode_defaults();
+
         if (g_fsbb_regulation_mode == FSBB_REGULATION_CC_OUTPUT)
         {
             /* IOUT outer loop -> IL inner loop cascade. */
